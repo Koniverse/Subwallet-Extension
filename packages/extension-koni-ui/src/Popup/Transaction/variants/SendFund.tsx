@@ -23,7 +23,7 @@ import { ADDRESS_INPUT_AUTO_FORMAT_VALUE } from '@subwallet/extension-koni-ui/co
 import { MktCampaignModalContext } from '@subwallet/extension-koni-ui/contexts/MktCampaignModalContext';
 import { useAlert, useDefaultNavigate, useFetchChainAssetInfo, useHandleSubmitMultiTransaction, useNotification, usePreCheckAction, useRestoreTransaction, useSelector, useSetCurrentPage, useTransactionContext, useWatchTransaction } from '@subwallet/extension-koni-ui/hooks';
 import useGetConfirmationByScreen from '@subwallet/extension-koni-ui/hooks/campaign/useGetConfirmationByScreen';
-import { approveSpending, cancelSubscription, getOptimalTransferProcess, isTonBounceableAddress, makeCrossChainTransfer, makeTransfer, subscribeMaxTransfer } from '@subwallet/extension-koni-ui/messaging';
+import { approveSpending, cancelSubscription, getTokensCanPayFee, getOptimalTransferProcess, isTonBounceableAddress, makeCrossChainTransfer, makeTransfer, subscribeMaxTransfer } from '@subwallet/extension-koni-ui/messaging';
 import { CommonActionType, commonProcessReducer, DEFAULT_COMMON_PROCESS } from '@subwallet/extension-koni-ui/reducer';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
 import { AccountAddressItemType, ChainItemType, FormCallbacks, Theme, ThemeProps, TransferParams } from '@subwallet/extension-koni-ui/types';
@@ -162,6 +162,18 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const [selectedTransactionFee, setSelectedTransactionFee] = useState<TransactionFee | undefined>();
   const { getCurrentConfirmation, renderConfirmationButtons } = useGetConfirmationByScreen('send-fund');
   const checkAction = usePreCheckAction(fromValue, true, detectTranslate('The account you are using is {{accountTitle}}, you cannot send assets with it'));
+
+  // todo: remove after test
+  const { currentAccountProxy } = useSelector((state: RootState) => state.accountState);
+
+  console.log('currentAccountProxy', currentAccountProxy.id);
+  getTokensCanPayFee({
+    chain: chainValue,
+    proxyId: currentAccountProxy?.id || '',
+    feeAmount: '999999999999'
+  }).then((rs) => {
+    console.log('rs', rs);
+  });
 
   const currentConfirmation = useMemo(() => {
     if (chainValue && destChainValue) {
@@ -465,7 +477,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferAll: options.isTransferAll,
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
-        feeCustom: selectedTransactionFee?.feeCustom
+        feeCustom: selectedTransactionFee?.feeCustom,
+        tokenPayFeeSlug: 'statemint-LOCAL-USDt' // todo: remove after test
       });
     } else {
       // Make cross chain transfer
@@ -479,7 +492,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferAll: options.isTransferAll,
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
-        feeCustom: selectedTransactionFee?.feeCustom
+        feeCustom: selectedTransactionFee?.feeCustom,
+        tokenPayFeeSlug: 'statemint-LOCAL-USDt' // todo: remove after test
       });
     }
 
