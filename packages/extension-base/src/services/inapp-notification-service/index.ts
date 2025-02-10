@@ -10,10 +10,11 @@ import { CronServiceInterface, ServiceStatus } from '@subwallet/extension-base/s
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
 import { EventService } from '@subwallet/extension-base/services/event-service';
 import { NotificationDescriptionMap, NotificationTitleMap, ONE_DAY_MILLISECOND } from '@subwallet/extension-base/services/inapp-notification-service/consts';
-import { _BaseNotificationInfo, _NotificationInfo, ClaimAvailBridgeNotificationMetadata, ClaimPolygonBridgeNotificationMetadata, NotificationActionType, NotificationTab, WithdrawClaimNotificationMetadata } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
+import { _BaseNotificationInfo, _NotificationInfo, ClaimAvailBridgeNotificationMetadata, ClaimPolygonBridgeNotificationMetadata, NotificationActionType, NotificationTab, ProcessNotificationMetadata, WithdrawClaimNotificationMetadata } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import { AvailBridgeSourceChain, AvailBridgeTransaction, fetchAllAvailBridgeClaimable, fetchPolygonBridgeTransactions, hrsToMillisecond, PolygonTransaction } from '@subwallet/extension-base/services/inapp-notification-service/utils';
 import { KeyringService } from '@subwallet/extension-base/services/keyring-service';
 import DatabaseService from '@subwallet/extension-base/services/storage-service/DatabaseService';
+import { ProcessTransactionData, ProcessType, SwapBaseTxData } from '@subwallet/extension-base/types';
 import { GetNotificationParams, RequestSwitchStatusParams } from '@subwallet/extension-base/types/notification';
 import { categoryAddresses, formatNumber } from '@subwallet/extension-base/utils';
 import { isSubstrateAddress } from '@subwallet/keyring';
@@ -156,6 +157,20 @@ export class InappNotificationService implements CronServiceInterface {
           candidateMetadata.counter === comparedMetadata.counter;
 
         if (sameNotification) {
+          return false;
+        }
+      }
+    }
+
+    if ([NotificationActionType.SWAP].includes(candidateNotification.actionType)) {
+      const candidateMetadata = candidateNotification.metadata as ProcessNotificationMetadata;
+      const processId = candidateMetadata.processId;
+
+      for (const notification of comparedNotifications) {
+        const comparedMetadata = notification.metadata as ProcessNotificationMetadata;
+        const _processId = comparedMetadata.processId;
+
+        if (processId === _processId) {
           return false;
         }
       }
@@ -362,6 +377,60 @@ export class InappNotificationService implements CronServiceInterface {
     });
 
     await this.validateAndWriteNotificationsToDB(notifications, address);
+  }
+
+  public async createProcessNotification (process: ProcessTransactionData) {
+    const timestamp = Date.now();
+    const _id = process.id;
+    const address = process.address;
+
+    let actionType: NotificationActionType;
+    let extrinsicType: ExtrinsicType;
+    let title = '';
+    let description = '';
+
+    if (process.type === ProcessType.SWAP) {
+      actionType = NotificationActionType.SWAP;
+      extrinsicType = ExtrinsicType.SWAP;
+      const combineInfo = process.combineInfo as SwapBaseTxData;
+
+      const fromAsset = this.chainService.getAssetBySlug(combineInfo.quote.pair.from);
+      const toAsset = this.chainService.getAssetBySlug(combineInfo.quote.pair.to);
+      const fromChain = this.chainService.getChainInfoByKey(fromAsset.originChain);
+      const toChain = this.chainService.getChainInfoByKey(toAsset.originChain);
+
+      title = '[{{accountName}}] Swapped From {{fromAmount}} {{fromAsset}} to {{toAmount}} {{toAsset}}'
+        .replace('{{fromAmount}}', formatNumber(combineInfo.quote.fromAmount, fromAsset.decimals || 0))
+        .replace('{{fromAsset}}', fromAsset.symbol)
+        .replace('{{toAmount}}', formatNumber(combineInfo.quote.toAmount, toAsset.decimals || 0))
+        .replace('{{toAsset}}', toAsset.symbol);
+      description = '{{fromAmount}} {{fromAsset}} on {{fromChain}} swapped for {{toAmount}} {{toAsset}} on {{toChain}}. Click to view details'
+        .replace('{{fromAmount}}', formatNumber(combineInfo.quote.fromAmount, fromAsset.decimals || 0))
+        .replace('{{fromAsset}}', fromAsset.symbol)
+        .replace('{{fromChain}}', fromChain.name)
+        .replace('{{toAmount}}', formatNumber(combineInfo.quote.toAmount, toAsset.decimals || 0))
+        .replace('{{toAsset}}', toAsset.symbol)
+        .replace('{{toChain}}', toChain.name);
+    } else {
+      actionType = NotificationActionType.SWAP;
+      extrinsicType = ExtrinsicType.SWAP;
+    }
+
+    const notification: _BaseNotificationInfo = {
+      id: `${actionType}___${_id}___${timestamp}`,
+      address: address,
+      title,
+      actionType,
+      metadata: {
+        processId: process.id
+      },
+      time: timestamp,
+      description,
+      isRead: false,
+      extrinsicType
+    };
+
+    await this.validateAndWriteNotificationsToDB([notification], process.address);
   }
 
   // Polygon Claimable Handle

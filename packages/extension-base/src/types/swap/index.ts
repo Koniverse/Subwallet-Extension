@@ -4,6 +4,7 @@
 import { _ChainInfo } from '@subwallet/chain-list/types';
 import { SwapError } from '@subwallet/extension-base/background/errors/SwapError';
 import { AmountData, ChainType, ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
+import { TransactionEventResponse } from '@subwallet/extension-base/services/transaction-service/types';
 import { TransactionData } from '@subwallet/extension-base/types';
 import { BaseStepDetail, CommonOptimalPath, CommonStepFeeInfo } from '@subwallet/extension-base/types/service-base';
 import BigN from 'bignumber.js';
@@ -68,6 +69,7 @@ export enum SwapProviderId {
   POLKADOT_ASSET_HUB = 'POLKADOT_ASSET_HUB',
   KUSAMA_ASSET_HUB = 'KUSAMA_ASSET_HUB',
   ROCOCO_ASSET_HUB = 'ROCOCO_ASSET_HUB',
+  WESTEND_ASSET_HUB = 'WESTEND_ASSET_HUB',
   SIMPLE_SWAP = 'SIMPLE_SWAP'
 }
 
@@ -79,6 +81,7 @@ export const _SUPPORTED_SWAP_PROVIDERS: SwapProviderId[] = [
   SwapProviderId.POLKADOT_ASSET_HUB,
   SwapProviderId.KUSAMA_ASSET_HUB,
   SwapProviderId.ROCOCO_ASSET_HUB,
+  SwapProviderId.WESTEND_ASSET_HUB,
   SwapProviderId.SIMPLE_SWAP
 ];
 
@@ -182,6 +185,9 @@ export interface SwapSubmitParams {
   address: string;
   slippage: number; // Example: 0.01 for 1%
   recipient?: string;
+  isPassConfirmation?: boolean;
+  onSend?: (rs: TransactionEventResponse) => void;
+  processId?: string;
 }
 
 export interface SwapSubmitStepData {

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
-import { CommonStepType } from '@subwallet/extension-base/types/service-base';
-import { SwapTxData } from '@subwallet/extension-base/types/swap';
+import { ProcessTransactionData } from '@subwallet/extension-base/types';
+import { SwapBaseTxData } from '@subwallet/extension-base/types/swap';
 import { AlertBox, MetaInfo } from '@subwallet/extension-koni-ui/components';
 import { SwapRoute, SwapTransactionBlock } from '@subwallet/extension-koni-ui/components/Swap';
 import { BN_TEN, BN_ZERO } from '@subwallet/extension-koni-ui/constants';
@@ -15,9 +15,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
-import { BaseTransactionConfirmationProps } from './Base';
+import { BaseProcessConfirmationProps } from './Base';
 
-type Props = BaseTransactionConfirmationProps;
+type Props = BaseProcessConfirmationProps;
 
 const Component: React.FC<Props> = (props: Props) => {
   const { className, transaction } = props;
@@ -25,11 +25,11 @@ const Component: React.FC<Props> = (props: Props) => {
   const { currencyData, priceMap } = useSelector((state) => state.price);
   const [showQuoteExpired, setShowQuoteExpired] = useState<boolean>(false);
   const { t } = useTranslation();
-  // @ts-ignore
-  const data = transaction.data as SwapTxData;
+  const process = useMemo(() => transaction.process as ProcessTransactionData, [transaction.process]);
+  const data = process.combineInfo as SwapBaseTxData;
 
   const recipientAddress = data.recipient || data.address;
-  const account = useGetAccountByAddress(recipientAddress);
+  const recipient = useGetAccountByAddress(recipientAddress);
   const toAssetInfo = useMemo(() => {
     return assetRegistryMap[data.quote.pair.to] || undefined;
   }, [assetRegistryMap, data.quote.pair.to]);
@@ -73,9 +73,10 @@ const Component: React.FC<Props> = (props: Props) => {
     );
   };
 
-  const isSwapXCM = useMemo(() => {
-    return data.process.steps.some((item) => item.type === CommonStepType.XCM);
-  }, [data.process.steps]);
+  // const isSwapXCM = useMemo(() => {
+  //   return data.process.steps.some((item) => item.type === CommonStepType.XCM);
+  // }, [data.process.steps]);
+  //
 
   const getWaitingTime = useMemo(() => {
     return Math.ceil((data.quote.estimatedArrivalTime || 0) / 60);
@@ -111,7 +112,7 @@ const Component: React.FC<Props> = (props: Props) => {
           address={recipientAddress}
           className={'__recipient-item'}
           label={t('Recipient')}
-          name={account?.name}
+          name={recipient?.name}
           networkPrefix={networkPrefix}
         />
         <MetaInfo.Default
@@ -141,14 +142,14 @@ const Component: React.FC<Props> = (props: Props) => {
           title={t('Pay attention!')}
           type='warning'
         />}
-        {!showQuoteExpired && isSwapXCM && (
-          <AlertBox
-            className={'__swap-quote-expired'}
-            description={t('The swap quote has been updated. Make sure to double-check all information before confirming the transaction.')}
-            title={t('Pay attention!')}
-            type='warning'
-          />
-        )}
+        {/* {!showQuoteExpired && isSwapXCM && ( */}
+        {/*   <AlertBox */}
+        {/*     className={'__swap-quote-expired'} */}
+        {/*     description={t('The swap quote has been updated. Make sure to double-check all information before confirming the transaction.')} */}
+        {/*     title={t('Pay attention!')} */}
+        {/*     type='warning' */}
+        {/*   /> */}
+        {/* )} */}
         {showQuoteExpired &&
           (
             <AlertBox
@@ -158,13 +159,12 @@ const Component: React.FC<Props> = (props: Props) => {
               type='warning'
             />)
         }
-
       </MetaInfo>
     </div>
   );
 };
 
-const SwapTransactionConfirmation = styled(Component)<Props>(({ theme: { token } }: Props) => {
+const SwapProcessConfirmation = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return {
     '.__quote-rate-wrapper': {
       display: 'flex'
@@ -251,4 +251,4 @@ const SwapTransactionConfirmation = styled(Component)<Props>(({ theme: { token }
   };
 });
 
-export default SwapTransactionConfirmation;
+export default SwapProcessConfirmation;
