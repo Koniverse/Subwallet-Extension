@@ -51,7 +51,7 @@ const Component: React.FC<Props> = (props: Props) => {
   const feeTypeNameMap = useMemo<Record<FeeOption, string>>(() => ({
     slow: t('Low'),
     average: t('Medium'),
-    fast: t('Highest')
+    fast: t('High')
   }), [t]);
 
   // todo: i18n this, may convert to util

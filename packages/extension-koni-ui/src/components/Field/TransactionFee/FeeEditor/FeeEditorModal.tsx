@@ -195,7 +195,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
 
   const customMaxFeeValidator = useCallback((rule: Rule, value: string): Promise<void> => {
     if (!value) {
-      return Promise.reject(t('Please enter the maximum fee.'));
+      return Promise.reject(t('Amount is required'));
     }
 
     if (feeOptionsInfo && 'baseGasFee' in feeOptionsInfo) {
@@ -203,7 +203,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
       const maxFeeValue = form.getFieldValue('maxFeeValue') as string;
 
       if (baseGasFee && maxFeeValue && new BigN(value).lte(new BigN(baseGasFee).multipliedBy(1.5))) {
-        return Promise.reject(t('The maximum fee entered is too low'));
+        return Promise.reject(t('Max fee/Priority fee must be higher than min GWEI'));
       }
 
       if ((new BigN(value)).lte(BN_ZERO)) {
@@ -284,7 +284,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
         <Input
           defaultValue={feeDefaultValue?.maxFeePerGas}
           label='Max fee (GWEI)'
-          placeholder='Enter fee value'
+          placeholder='Enter amount'
           type='number'
         />
       </Form.Item>
@@ -301,7 +301,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
         <Input
           defaultValue={feeDefaultValue?.maxPriorityFeePerGas}
           label='Priority fee (GWEI)'
-          placeholder='Enter fee value'
+          placeholder='Enter amount'
           type='number'
         />
       </Form.Item>
@@ -318,7 +318,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
             className={'__approve-button'}
             onClick={onClickSubmit}
           >
-            {t('Approve')}
+            {t('Apply fee')}
           </Button>
         )}
         id={modalId}

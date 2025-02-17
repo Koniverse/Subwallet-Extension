@@ -1,7 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { _getAssetDecimals, _getAssetPriceId, _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
+import { _getAssetDecimals, _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
 import { swapCustomFormatter } from '@subwallet/extension-base/utils';
 import { useSelector } from '@subwallet/extension-koni-ui/hooks';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
@@ -21,7 +21,7 @@ type Props = ThemeProps & {
   onSelect?: (slug: string) => void,
   balance: string,
 }
-const numberMetadata = { maxNumberFormat: 8 };
+const numberMetadata = { maxNumberFormat: 6 };
 
 // TODO: Merge this component with ChooseFeeItem in Swap.
 const Component: React.FC<Props> = (props: Props) => {
