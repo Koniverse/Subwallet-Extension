@@ -818,7 +818,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         destChain: destChainValue,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
+        nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee !== nativeTokenSlug ? currentNonNativeTokenPayFee : undefined
       }, callback)
         .then((callback))
         .catch((e) => {
