@@ -16,12 +16,14 @@ import { BN, BN_TEN, BN_ZERO } from '@polkadot/util';
 import { calculateReward } from '../../utils';
 
 export interface TaoStakeInfo {
+  hotkey: string
   stake: string;
 }
+
 interface TaoStakingStakeOption {
   owner: string,
-  amount: string,
-  identity: string
+  amount: string
+  // identity: string
 }
 
 interface Hotkey {
@@ -94,21 +96,21 @@ export async function fetchDelegates (): Promise<ValidatorResponse> {
   });
 }
 
-export async function fetchTaoDelegateState (address: string): Promise<RawDelegateState> {
-  const apiKey = bittensorApiKey();
+// export async function fetchTaoDelegateState (address: string): Promise<RawDelegateState> {
+//   const apiKey = bittensorApiKey();
 
-  return new Promise(function (resolve) {
-    fetch(`https://api.taostats.io/api/stake_balance/latest/v1?coldkey=${address}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `${apiKey}`
-      }
-    }).then((resp) => {
-      resolve(resp.json());
-    }).catch(console.error);
-  });
-}
+//   return new Promise(function (resolve) {
+//     fetch(`https://api.taostats.io/api/stake_balance/latest/v1?coldkey=${address}`, {
+//       method: 'GET',
+//       headers: {
+//         'Content-Type': 'application/json',
+//         Authorization: `${apiKey}`
+//       }
+//     }).then((resp) => {
+//       resolve(resp.json());
+//     }).catch(console.error);
+//   });
+// }
 
 /* Fetch data */
 
@@ -267,8 +269,8 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
 
         delegatorState.push({
           owner: testnetAddress,
-          amount: bnStakeAmount.toString(),
-          identity: testnetAddress
+          amount: bnStakeAmount.toString()
+          // identity: testnetAddress
         });
 
         rsCallback({
@@ -296,25 +298,35 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
 
     const getMainnetPoolPosition = async () => {
       const rawDelegateStateInfos = await Promise.all(
-        useAddresses.map((address) => fetchTaoDelegateState(address))
+        useAddresses.map(async (address) => (await substrateApi.api.call.stakeInfoRuntimeApi.getStakeInfoForColdkey(address)).toJSON())
       );
 
-      if (rawDelegateStateInfos.length > 0) {
+      if (rawDelegateStateInfos && rawDelegateStateInfos.length > 0) {
         rawDelegateStateInfos.forEach((rawDelegateStateInfo, i) => {
           const owner = reformatAddress(useAddresses[i], 42);
           const delegatorState: TaoStakingStakeOption[] = [];
           let bnTotalBalance = BN_ZERO;
-          const delegateStateInfo = rawDelegateStateInfo.data;
+
+          const delegateStateInfo = rawDelegateStateInfo as unknown as TaoStakeInfo[];
+
+          const totalDelegate: Record<string, string> = {};
 
           for (const delegate of delegateStateInfo) {
-            const name = delegate.hotkey_name || delegate.hotkey.ss58;
+            const hotkey = delegate.hotkey;
 
-            bnTotalBalance = bnTotalBalance.add(new BN(delegate.stake));
+            if (totalDelegate[hotkey]) {
+              totalDelegate[hotkey] += delegate.stake;
+            } else {
+              totalDelegate[hotkey] = delegate.stake;
+            }
+          }
+
+          for (const hotkey in totalDelegate) {
+            bnTotalBalance = bnTotalBalance.add(new BN(totalDelegate[hotkey].toString()));
 
             delegatorState.push({
-              owner: delegate.hotkey.ss58,
-              amount: delegate.stake,
-              identity: name
+              owner: hotkey,
+              amount: totalDelegate[hotkey]
             });
           }
 
@@ -347,6 +359,60 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
         });
       }
     };
+
+    // const getMainnetPoolPosition = async () => {
+    //   const rawDelegateStateInfos = await Promise.all(
+    //     useAddresses.map((address) => fetchTaoDelegateState(address))
+    //   );
+
+    //   if (rawDelegateStateInfos.length > 0) {
+    //     rawDelegateStateInfos.forEach((rawDelegateStateInfo, i) => {
+    //       const owner = reformatAddress(useAddresses[i], 42);
+    //       const delegatorState: TaoStakingStakeOption[] = [];
+    //       let bnTotalBalance = BN_ZERO;
+    //       const delegateStateInfo = rawDelegateStateInfo.data;
+
+    //       for (const delegate of delegateStateInfo) {
+    //         const name = delegate.hotkey_name || delegate.hotkey.ss58;
+
+    //         bnTotalBalance = bnTotalBalance.add(new BN(delegate.stake));
+
+    //         delegatorState.push({
+    //           owner: delegate.hotkey.ss58,
+    //           amount: delegate.stake,
+    //           identity: name
+    //         });
+    //       }
+
+    //       if (delegateStateInfo && delegateStateInfo.length > 0) {
+    //         this.parseNominatorMetadata(chainInfo, owner, delegatorState)
+    //           .then((nominatorMetadata) => {
+    //             rsCallback({
+    //               ...defaultInfo,
+    //               ...nominatorMetadata,
+    //               address: owner,
+    //               type: this.type
+    //             });
+    //           })
+    //           .catch(console.error);
+    //       } else {
+    //         rsCallback({
+    //           ...defaultInfo,
+    //           type: this.type,
+    //           address: owner,
+    //           balanceToken: this.nativeToken.slug,
+    //           totalStake: '0',
+    //           activeStake: '0',
+    //           unstakeBalance: '0',
+    //           status: EarningStatus.NOT_STAKING,
+    //           isBondedBefore: false,
+    //           nominations: [],
+    //           unstakings: []
+    //         });
+    //       }
+    //     });
+    //   }
+    // };
 
     const getStakingPositionInterval = async () => {
       if (cancel) {
