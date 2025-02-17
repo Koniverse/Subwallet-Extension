@@ -17,6 +17,7 @@ export interface ResponseSubscribeTransfer {
   maxTransferable: string;
   feeOptions: FeeDetail;
   feeType: FeeChainType;
+  feePercentageSpecialCase?: number;
 }
 
 export interface RequestSubmitTransfer extends BaseRequestSign, TransactionFee {

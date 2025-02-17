@@ -1026,6 +1026,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           destChainValue={destChainValue}
           estimateFee={estimatedNativeFee}
           feeOptionsInfo={transferInfo?.feeOptions}
+          feePercentageSpecialCase={transferInfo?.feePercentageSpecialCase}
           feeType={transferInfo?.feeType}
           listTokensCanPayFee={listTokensCanPayFee}
           loading={loading}
@@ -1033,8 +1034,9 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           onSelect={setSelectedTransactionFee}
           onSetTokenPayFee={onSetTokenPayFee}
           selectedFeeOption={selectedTransactionFee}
-          tokenSlug={currentNonNativeTokenPayFee || nativeTokenSlug}
-        />)}
+          tokenPayFeeSlug={currentNonNativeTokenPayFee || nativeTokenSlug}
+          tokenSlug={assetValue}
+                                                                 />)}
         {
           chainValue !== destChainValue && (
             <div className={'__warning_message_cross_chain'}>

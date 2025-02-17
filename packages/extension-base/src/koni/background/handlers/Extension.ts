@@ -1900,6 +1900,8 @@ export default class KoniExtension {
     }
 
     const recalculateMaxTransferableSpecialCase = async (transferInfo: ResponseSubscribeTransfer): Promise<ResponseSubscribeTransfer> => {
+      transferInfo.feePercentageSpecialCase = FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE;
+
       if (isTransferLocalTokenAndPayThatTokenAsFee) {
         const nativeTokenSlug = this.#koniState.chainService.getNativeTokenInfo(chain).slug;
         const estimatedFeeNative = (BigInt(transferInfo.feeOptions.estimatedFee) * BigInt(FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE) / BigInt(100)).toString();
@@ -1909,7 +1911,7 @@ export default class KoniExtension {
           nativeTokenFeeAmount: estimatedFeeNative
         });
 
-        transferInfo.feeOptions.estimatedFee = estimatedFeeNative;
+        // transferInfo.feeOptions.estimatedFee = estimatedFeeNative;
         transferInfo.maxTransferable = (BigInt(transferInfo.maxTransferable) - BigInt(estimatedFeeLocal)).toString();
       }
 

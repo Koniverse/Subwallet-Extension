@@ -1,6 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { _AssetType } from '@subwallet/chain-list/types';
 import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { swapCustomFormatter } from '@subwallet/extension-base/utils';
 import ChooseFeeItem from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/ChooseFeeItem';
@@ -9,7 +10,7 @@ import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { ModalContext, Number, SwModal } from '@subwallet/react-ui';
 import BigN from 'bignumber.js';
 import CN from 'classnames';
-import React, { useCallback, useContext } from 'react';
+import React, { useCallback, useContext, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import styled from 'styled-components';
 
@@ -20,19 +21,25 @@ type Props = ThemeProps & {
   items: TokenHasBalanceInfo[] | undefined,
   onSelectItem: (slug: string) => void,
   selectedItem?: string,
-  nativeTokenDecimals: number
+  nativeTokenDecimals: number,
+  tokenSlug: string,
+  feePercentageSpecialCase?: number
 }
 const numberMetadata = { maxNumberFormat: 8 };
 
 // TODO: Merge this component with ChooseFeeTokenModal in Swap.
 const Component: React.FC<Props> = (props: Props) => {
-  const { className, convertedFeeValueToUSD, estimateFee, items, modalId, onSelectItem, selectedItem } = props;
+  const { className, convertedFeeValueToUSD, estimateFee, feePercentageSpecialCase, items, modalId, onSelectItem, selectedItem, tokenSlug } = props;
   const { currencyData } = useSelector((state: RootState) => state.price);
   const { inactiveModal } = useContext(ModalContext);
 
   const onCancel = useCallback(() => {
     inactiveModal(modalId);
   }, [inactiveModal, modalId]);
+
+  const estimateFeeSpecial = useMemo(() => {
+    return feePercentageSpecialCase && !tokenSlug.includes(_AssetType.NATIVE) ? (new BigN(estimateFee).multipliedBy(feePercentageSpecialCase).div(100)).toString() : estimateFee;
+  }, [estimateFee, feePercentageSpecialCase, tokenSlug]);
 
   return (
     <>
@@ -63,7 +70,7 @@ const Component: React.FC<Props> = (props: Props) => {
           </div>
           {items && items.map((item, index) => (
             <ChooseFeeItem
-              amountToPay={estimateFee}
+              amountToPay={ item.slug !== tokenSlug ? estimateFee : estimateFeeSpecial}
               balance={item?.free}
               key={`${item.slug}-${index}`}
               onSelect={onSelectItem}

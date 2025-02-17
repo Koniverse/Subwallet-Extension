@@ -34,7 +34,9 @@ export type RenderFieldNodeParams = {
 type Props = ThemeProps & {
   onSelect?: (option: TransactionFee) => void;
   isLoading?: boolean;
+  tokenPayFeeSlug: string;
   tokenSlug: string;
+  feePercentageSpecialCase?: number
   feeOptionsInfo?: FeeDetail;
   estimateFee: string;
   renderFieldNode?: (params: RenderFieldNodeParams) => React.ReactNode;
@@ -52,7 +54,7 @@ type Props = ThemeProps & {
 // todo: will update dynamic later
 const modalId = 'FeeEditorModalId';
 
-const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, estimateFee, feeOptionsInfo, feeType, isLoading = false, listTokensCanPayFee, loading, nativeTokenSlug, onSelect, onSetTokenPayFee, renderFieldNode, selectedFeeOption, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, estimateFee, feeOptionsInfo, feePercentageSpecialCase, feeType, isLoading = false, listTokensCanPayFee, loading, nativeTokenSlug, onSelect, onSetTokenPayFee, renderFieldNode, selectedFeeOption, tokenPayFeeSlug, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal } = useContext(ModalContext);
   const assetRegistry = useSelector((root) => root.assetRegistry.assetRegistry);
@@ -60,7 +62,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
   const priceMap = useSelector((state) => state.price.priceMap);
 
   const tokenAsset = (() => {
-    return assetRegistry[tokenSlug] || undefined;
+    return assetRegistry[tokenPayFeeSlug] || undefined;
   })();
 
   const nativeAsset = (() => {
@@ -129,10 +131,10 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
   }, [chainValue, destChainValue, feeType]);
 
   const rateValue = useMemo(() => {
-    const selectedToken = listTokensCanPayFee.find((item) => item.slug === tokenSlug);
+    const selectedToken = listTokensCanPayFee.find((item) => item.slug === tokenPayFeeSlug);
 
     return selectedToken?.rate || 0;
-  }, [listTokensCanPayFee, tokenSlug]);
+  }, [listTokensCanPayFee, tokenPayFeeSlug]);
 
   const convertedEstimatedFee = useMemo(() => {
     return new BigN(estimateFee).multipliedBy(rateValue);
@@ -198,17 +200,19 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
         priceValue={priceValue}
         selectedFeeOption={selectedFeeOption}
         symbol={symbol}
-        tokenSlug={tokenSlug}
+        tokenSlug={tokenPayFeeSlug}
       />
 
       <ChooseFeeTokenModal
         convertedFeeValueToUSD={convertedFeeValueToUSD}
         estimateFee={estimateFee}
+        feePercentageSpecialCase={feePercentageSpecialCase}
         items={listTokensCanPayFee}
         modalId={CHOOSE_FEE_TOKEN_MODAL}
         nativeTokenDecimals={nativeTokenDecimals}
         onSelectItem={onSetTokenPayFee}
-        selectedItem={currentTokenPayFee || tokenSlug}
+        selectedItem={currentTokenPayFee || tokenPayFeeSlug}
+        tokenSlug={tokenSlug}
       />
     </>
   );
