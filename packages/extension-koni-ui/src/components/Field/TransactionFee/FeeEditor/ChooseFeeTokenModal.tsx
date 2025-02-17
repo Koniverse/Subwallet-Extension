@@ -15,6 +15,7 @@ import styled from 'styled-components';
 
 type Props = ThemeProps & {
   modalId: string,
+  estimateFee: string | number | BigN,
   convertedFeeValueToUSD: string | number | BigN,
   items: TokenHasBalanceInfo[] | undefined,
   onSelectItem: (slug: string) => void,
@@ -24,7 +25,7 @@ const numberMetadata = { maxNumberFormat: 8 };
 
 // TODO: Merge this component with ChooseFeeTokenModal in Swap.
 const Component: React.FC<Props> = (props: Props) => {
-  const { className, convertedFeeValueToUSD, items, modalId, onSelectItem, selectedItem } = props;
+  const { className, convertedFeeValueToUSD, estimateFee, items, modalId, onSelectItem, selectedItem } = props;
   const { currencyData } = useSelector((state: RootState) => state.price);
   const { inactiveModal } = useContext(ModalContext);
 
@@ -61,10 +62,11 @@ const Component: React.FC<Props> = (props: Props) => {
           </div>
           {items && items.map((item, index) => (
             <ChooseFeeItem
-              amountToPay={convertedFeeValueToUSD}
+              amountToPay={estimateFee}
               balance={item?.free}
               key={`${item.slug}-${index}`}
               onSelect={onSelectItem}
+              rate={item.rate}
               selected={selectedItem === item.slug}
               slug={item.slug}
             />

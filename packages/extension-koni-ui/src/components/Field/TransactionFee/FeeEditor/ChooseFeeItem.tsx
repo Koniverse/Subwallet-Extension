@@ -3,7 +3,6 @@
 
 import { _getAssetDecimals, _getAssetPriceId, _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
 import { swapCustomFormatter } from '@subwallet/extension-base/utils';
-import { BN_TEN } from '@subwallet/extension-koni-ui/constants';
 import { useSelector } from '@subwallet/extension-koni-ui/hooks';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Icon, Logo, Number } from '@subwallet/react-ui';
@@ -17,6 +16,7 @@ import styled from 'styled-components';
 type Props = ThemeProps & {
   slug: string,
   amountToPay: string | number | BigN,
+  rate: number,
   selected?: boolean,
   onSelect?: (slug: string) => void,
   balance: string,
@@ -25,7 +25,7 @@ const numberMetadata = { maxNumberFormat: 8 };
 
 // TODO: Merge this component with ChooseFeeItem in Swap.
 const Component: React.FC<Props> = (props: Props) => {
-  const { amountToPay, balance, className, onSelect, selected, slug } = props;
+  const { amountToPay, balance, className, onSelect, rate, selected, slug } = props;
   const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
   const priceMap = useSelector((state) => state.price.priceMap);
   const { t } = useTranslation();
@@ -44,16 +44,16 @@ const Component: React.FC<Props> = (props: Props) => {
       return undefined;
     }
 
-    return new BigN(amountToPay).div(priceMap[_getAssetPriceId(feeAssetInfo)] || 0);
-  }, [amountToPay, feeAssetInfo, priceMap]);
+    return new BigN(amountToPay).div(rate);
+  }, [amountToPay, feeAssetInfo, priceMap, rate]);
 
   const isDisableItem = useMemo(() => {
     if (!convertedAmountToPay) {
       return true;
     }
 
-    return (new BigN(balance).dividedBy(BN_TEN.pow(decimal || 0))).lte(new BigN(convertedAmountToPay));
-  }, [balance, convertedAmountToPay, decimal]);
+    return new BigN(balance).lt(new BigN(convertedAmountToPay));
+  }, [balance, convertedAmountToPay]);
 
   return (
     <>
@@ -75,7 +75,7 @@ const Component: React.FC<Props> = (props: Props) => {
                 ? (<Number
                   className={'__amount-fee-info'}
                   customFormatter={swapCustomFormatter}
-                  decimal={0}
+                  decimal={decimal}
                   formatType={'custom'}
                   metadata={numberMetadata}
                   suffix={_getAssetSymbol(feeAssetInfo)}

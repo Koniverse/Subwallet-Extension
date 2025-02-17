@@ -186,6 +186,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
 
       <ChooseFeeTokenModal
         convertedFeeValueToUSD={convertedFeeValueToUSD}
+        estimateFee={estimateFee}
         items={listTokensCanPayFee}
         modalId={CHOOSE_FEE_TOKEN_MODAL}
         onSelectItem={onSetTokenPayFee}

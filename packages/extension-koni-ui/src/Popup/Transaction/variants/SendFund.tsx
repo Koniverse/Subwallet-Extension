@@ -24,7 +24,7 @@ import { ADDRESS_INPUT_AUTO_FORMAT_VALUE } from '@subwallet/extension-koni-ui/co
 import { MktCampaignModalContext } from '@subwallet/extension-koni-ui/contexts/MktCampaignModalContext';
 import { useAlert, useDefaultNavigate, useFetchChainAssetInfo, useGetBalance, useHandleSubmitMultiTransaction, useNotification, usePreCheckAction, useRestoreTransaction, useSelector, useSetCurrentPage, useTransactionContext, useWatchTransaction } from '@subwallet/extension-koni-ui/hooks';
 import useGetConfirmationByScreen from '@subwallet/extension-koni-ui/hooks/campaign/useGetConfirmationByScreen';
-import { approveSpending, cancelSubscription, getAmountForPair, getOptimalTransferProcess, getTokensCanPayFee, isTonBounceableAddress, makeCrossChainTransfer, makeTransfer, subscribeMaxTransfer } from '@subwallet/extension-koni-ui/messaging';
+import { approveSpending, cancelSubscription, getOptimalTransferProcess, getTokensCanPayFee, isTonBounceableAddress, makeCrossChainTransfer, makeTransfer, subscribeMaxTransfer } from '@subwallet/extension-koni-ui/messaging';
 import { CommonActionType, commonProcessReducer, DEFAULT_COMMON_PROCESS } from '@subwallet/extension-koni-ui/reducer';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
 import { AccountAddressItemType, ChainItemType, FormCallbacks, Theme, ThemeProps, TransferParams } from '@subwallet/extension-koni-ui/types';
@@ -138,7 +138,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const { defaultData, persistData } = useTransactionContext<TransferParams>();
   const { defaultSlug: sendFundSlug } = defaultData;
   const isFirstRender = useIsFirstRender();
-  const priceMap = useSelector((state) => state.price.priceMap);
 
   const [form] = Form.useForm<TransferParams>();
   const formDefault = useMemo((): TransferParams => {
@@ -164,7 +163,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const [listTokensCanPayFee, setListTokensCanPayFee] = useState<TokenHasBalanceInfo[]>([]);
 
   // TODO: Should manage the states `tokenPayFeeAmount` and `currentTokenPayFee` together.
-  const [nonNativeTokenPayFeeAmount, setNonNativeTokenPayFeeAmount] = useState<string|undefined>(undefined);
   const [currentNonNativeTokenPayFee, setCurrentNonNativeTokenPayFee] = useState<string | undefined>(undefined);
 
   const [selectedTransactionFee, setSelectedTransactionFee] = useState<TransactionFee | undefined>();
@@ -209,7 +207,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const [isTransferLocalTokenAndPayThatTokenAsFee, setIsTransferLocalTokenAndPayThatTokenAsFee] = useState(false);
 
   // todo: remove after testing
-  console.log('[TESTER] Transfer info:', transferInfo, 'priceMap: ', priceMap);
+  console.log('[TESTER] Transfer info:', transferInfo);
 
   const [processState, dispatchProcessState] = useReducer(commonProcessReducer, DEFAULT_COMMON_PROCESS);
 
@@ -382,7 +380,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         setForceUpdateMaxValue(undefined);
 
         setCurrentNonNativeTokenPayFee(undefined);
-        setNonNativeTokenPayFeeAmount(undefined);
         setIsTransferLocalTokenAndPayThatTokenAsFee(false);
       }
 
@@ -915,28 +912,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     });
   }, [chainValue, currentAccountProxy?.id, fromValue, nativeTokenBalance, nativeTokenSlug]);
 
-  // useEffect(() => {
-  //   if (currentNonNativeTokenPayFee && currentNonNativeTokenPayFee !== nativeTokenSlug) {
-  //     const getEstimatedFee = async () => {
-  //       try {
-  //         const tokenPayFeeAmount = await getAmountForPair({
-  //           nativeTokenSlug,
-  //           nativeTokenFeeAmount: estimatedNativeFee,
-  //           toTokenSlug: currentNonNativeTokenPayFee
-  //         });
-  //
-  //         setNonNativeTokenPayFeeAmount(tokenPayFeeAmount);
-  //       } catch (error) {
-  //         console.error('Error fetching tokens:', error);
-  //       }
-  //     };
-  //
-  //     getEstimatedFee().catch((error) => {
-  //       console.error('Unhandled error in getEstimatedFee:', error);
-  //     });
-  //   }
-  // }, [chainInfoMap, chainValue, currentNonNativeTokenPayFee, estimatedNativeFee, nativeTokenSlug]);
-
   useEffect(() => {
     const isNonNativeToken = assetValue && !assetValue.includes(_AssetType.NATIVE) && currentNonNativeTokenPayFee && !currentNonNativeTokenPayFee.includes(_AssetType.NATIVE);
     const isSameToken = assetValue === currentNonNativeTokenPayFee;
@@ -1063,7 +1038,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           chainValue={chainValue}
           currentTokenPayFee={currentNonNativeTokenPayFee}
           destChainValue={destChainValue}
-          estimateFee={(currentNonNativeTokenPayFee !== nativeTokenSlug && !!nonNativeTokenPayFeeAmount) ? nonNativeTokenPayFeeAmount : estimatedNativeFee}
+          estimateFee={estimatedNativeFee}
           feeOptionsInfo={transferInfo?.feeOptions}
           feeType={transferInfo?.feeType}
           listTokensCanPayFee={listTokensCanPayFee}
