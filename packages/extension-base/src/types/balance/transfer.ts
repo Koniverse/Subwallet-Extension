@@ -27,5 +27,4 @@ export interface RequestSubmitTransfer extends BaseRequestSign, TransactionFee {
   transferAll: boolean;
   value: string;
   transferBounceable?: boolean;
-  isTransferLocalTokenAndPayThatTokenAsFee?: boolean;
 }

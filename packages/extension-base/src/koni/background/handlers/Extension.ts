@@ -45,7 +45,7 @@ import { AppBannerData, AppConfirmationData, AppPopupData } from '@subwallet/ext
 import { EXTENSION_REQUEST_URL } from '@subwallet/extension-base/services/request-service/constants';
 import { AuthUrls } from '@subwallet/extension-base/services/request-service/types';
 import { DEFAULT_AUTO_LOCK_TIME } from '@subwallet/extension-base/services/setting-service/constants';
-import { checkLiquidityForPath, estimateTokensForPath, getReserveForPath, getReserveForPool } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
+import { checkLiquidityForPool, estimateTokensForPool, getReserveForPool } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
 import { SWTransaction, SWTransactionResponse, SWTransactionResult, TransactionEmitter, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
 import { isProposalExpired, isSupportWalletConnectChain, isSupportWalletConnectNamespace } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
 import { ResultApproveWalletConnectSession, WalletConnectNotSupportRequest, WalletConnectSessionRequest } from '@subwallet/extension-base/services/wallet-connect-service/types';
@@ -1312,7 +1312,7 @@ export default class KoniExtension {
   }
 
   private async makeTransfer (inputData: RequestSubmitTransfer): Promise<SWTransactionResponse> {
-    const { chain, feeCustom, feeOption, from, isTransferLocalTokenAndPayThatTokenAsFee, nonNativeTokenPayFeeSlug, to, tokenSlug, transferAll, transferBounceable, value } = inputData;
+    const { chain, feeCustom, feeOption, from, nonNativeTokenPayFeeSlug, to, tokenSlug, transferAll, transferBounceable, value } = inputData;
     const transferTokenInfo = this.#koniState.chainService.getAssetBySlug(tokenSlug);
     const errors = validateTransferRequest(transferTokenInfo, from, to, value, transferAll);
 
@@ -1322,6 +1322,7 @@ export default class KoniExtension {
     const nativeTokenInfo = this.#koniState.getNativeTokenInfo(chain);
     const nativeTokenSlug: string = nativeTokenInfo.slug;
     const isTransferNativeToken = nativeTokenSlug === tokenSlug;
+    const isTransferLocalTokenAndPayThatTokenAsFee = !isTransferNativeToken && nonNativeTokenPayFeeSlug === tokenSlug;
     const extrinsicType = isTransferNativeToken ? ExtrinsicType.TRANSFER_BALANCE : ExtrinsicType.TRANSFER_TOKEN;
     let chainType = ChainType.SUBSTRATE;
 
@@ -1490,7 +1491,7 @@ export default class KoniExtension {
   }
 
   private async makeCrossChainTransfer (inputData: RequestCrossChainTransfer): Promise<SWTransactionResponse> {
-    const { destinationNetworkKey, feeCustom, feeOption, from, isTransferLocalTokenAndPayThatTokenAsFee, nonNativeTokenPayFeeSlug, originNetworkKey, to, tokenSlug, transferAll, transferBounceable, value } = inputData;
+    const { destinationNetworkKey, feeCustom, feeOption, from, nonNativeTokenPayFeeSlug, originNetworkKey, to, tokenSlug, transferAll, transferBounceable, value } = inputData;
 
     const originTokenInfo = this.#koniState.getAssetBySlug(tokenSlug);
     const destinationTokenInfo = this.#koniState.getXcmEqualAssetByChain(destinationNetworkKey, tokenSlug);
@@ -1507,6 +1508,9 @@ export default class KoniExtension {
     const isSnowBridgeEvmTransfer = _isPureEvmChain(chainInfoMap[originNetworkKey]) && _isSnowBridgeXcm(chainInfoMap[originNetworkKey], chainInfoMap[destinationNetworkKey]) && !isAvailBridgeFromEvm;
     const isPolygonBridgeTransfer = _isPolygonChainBridge(originNetworkKey, destinationNetworkKey);
     const isPosBridgeTransfer = _isPosChainBridge(originNetworkKey, destinationNetworkKey);
+
+    const isTransferNative = this.#koniState.getNativeTokenInfo(originNetworkKey).slug === tokenSlug;
+    const isTransferLocalTokenAndPayThatTokenAsFee = !isTransferNative && tokenSlug === nonNativeTokenPayFeeSlug;
 
     let additionalValidator: undefined | ((inputTransaction: SWTransactionResponse) => Promise<void>);
     let eventsHandler: undefined | ((eventEmitter: TransactionEmitter) => void);
@@ -1646,7 +1650,7 @@ export default class KoniExtension {
       const reserve = await getReserveForPool(substrateApi.api, nativeTokenInfo, tokenInfo);
 
       if (!reserve || !reserve[0] || !reserve[1]) {
-        return false;
+        return;
       }
 
       const rate = new BigN(reserve[1]).div(reserve[0]).toString();
@@ -1659,9 +1663,8 @@ export default class KoniExtension {
       if (feeAmount === undefined) {
         tokensCanPayFee.push(tokenCanPayFee);
       } else {
-        const reserves = await getReserveForPath(substrateApi.api, [nativeTokenInfo, tokenInfo]);
-        const amounts = estimateTokensForPath(feeAmount, reserves);
-        const liquidityError = checkLiquidityForPath(amounts, reserves);
+        const amount = estimateTokensForPool(feeAmount, reserve);
+        const liquidityError = checkLiquidityForPool(amount, reserve[0], reserve[1]);
 
         if (!liquidityError) {
           tokensCanPayFee.push(tokenCanPayFee);

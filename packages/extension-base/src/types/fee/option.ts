@@ -10,5 +10,4 @@ export type TransactionFee = {
   feeOption?: FeeOption;
   feeCustom?: FeeCustom;
   nonNativeTokenPayFeeSlug?: string;
-  isTransferLocalTokenAndPayThatTokenAsFee?: boolean;
 }

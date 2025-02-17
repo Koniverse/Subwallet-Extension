@@ -54,7 +54,6 @@ type ComponentProps = {
 interface TransferOptions {
   isTransferAll: boolean;
   isTransferBounceable: boolean;
-  isTransferLocalTokenAndPayThatTokenAsFee: boolean
 }
 
 function getTokenItems (
@@ -204,7 +203,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const chainStatus = useMemo(() => chainStatusMap[chainValue]?.connectionStatus, [chainValue, chainStatusMap]);
   const estimatedNativeFee = useMemo((): string => transferInfo?.feeOptions.estimatedFee || '0', [transferInfo]);
-  const [isTransferLocalTokenAndPayThatTokenAsFee, setIsTransferLocalTokenAndPayThatTokenAsFee] = useState(false);
 
   // todo: remove after testing
   console.log('[TESTER] Transfer info:', transferInfo);
@@ -380,7 +378,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         setForceUpdateMaxValue(undefined);
 
         setCurrentNonNativeTokenPayFee(undefined);
-        setIsTransferLocalTokenAndPayThatTokenAsFee(false);
       }
 
       if (part.destChain || part.chain || part.value || part.asset) {
@@ -471,7 +468,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         value: value,
         transferAll: options.isTransferAll,
         transferBounceable: options.isTransferBounceable,
-        isTransferLocalTokenAndPayThatTokenAsFee: options.isTransferLocalTokenAndPayThatTokenAsFee,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
         nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
@@ -487,7 +483,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         value,
         transferAll: options.isTransferAll,
         transferBounceable: options.isTransferBounceable,
-        isTransferLocalTokenAndPayThatTokenAsFee: options.isTransferLocalTokenAndPayThatTokenAsFee,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
         nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
@@ -592,8 +587,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const onSubmit: FormCallbacks<TransferParams>['onFinish'] = useCallback((values: TransferParams) => {
     const options: TransferOptions = {
       isTransferAll: isTransferAll,
-      isTransferBounceable: false,
-      isTransferLocalTokenAndPayThatTokenAsFee
+      isTransferBounceable: false
     };
 
     let checkTransferAll = false;
@@ -711,7 +705,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     _doSubmit().catch((error) => {
       console.error('Error during submit:', error);
     });
-  }, [assetInfo, chainInfoMap, closeAlert, doSubmit, form, isTransferAll, isTransferLocalTokenAndPayThatTokenAsFee, openAlert, t, updateAddressInputValue]);
+  }, [assetInfo, chainInfoMap, closeAlert, doSubmit, form, isTransferAll, openAlert, t, updateAddressInputValue]);
 
   const onClickSubmit = useCallback((values: TransferParams) => {
     if (currentConfirmation) {
@@ -911,15 +905,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       console.error('Unhandled error in fetchTokens:', error);
     });
   }, [chainValue, currentAccountProxy?.id, fromValue, nativeTokenBalance, nativeTokenSlug]);
-
-  useEffect(() => {
-    const isNonNativeToken = assetValue && !assetValue.includes(_AssetType.NATIVE) && currentNonNativeTokenPayFee && !currentNonNativeTokenPayFee.includes(_AssetType.NATIVE);
-    const isSameToken = assetValue === currentNonNativeTokenPayFee;
-
-    if (isNonNativeToken && isSameToken) {
-      setIsTransferLocalTokenAndPayThatTokenAsFee(true);
-    }
-  }, [assetValue, currentNonNativeTokenPayFee]);
 
   useRestoreTransaction(form);
 
