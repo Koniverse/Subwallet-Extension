@@ -217,7 +217,6 @@ export default class TransactionService {
   }
 
   private updateAliveProcess () {
-    console.log('updateAliveProcess');
     this.aliveProcessSubject.next(this.aliveProcessMap);
   }
 
@@ -357,7 +356,11 @@ export default class TransactionService {
       this.onFailed({ ...data, errors: [...data.errors, new TransactionError(BasicTxErrorType.INTERNAL_ERROR)] });
 
       if (step) {
-        this.updateProcessStepStatus(step, { status: StepStatus.FAILED });
+        if (data.errors.find((error) => error.errorType === BasicTxErrorType.USER_REJECT_REQUEST)) {
+          this.deleteProcess(step);
+        } else {
+          this.updateProcessStepStatus(step, { status: StepStatus.FAILED });
+        }
       }
     });
 
@@ -1429,6 +1432,15 @@ export default class TransactionService {
     return this.aliveProcessMap.has(processId);
   }
 
+  private deleteProcess (step: BriefProcessStep) {
+    const { processId } = step;
+
+    this.aliveProcessMap.delete(processId);
+    this.state.dbService.deleteProcessTransactionById(processId).catch(console.error);
+
+    this.updateAliveProcess();
+  }
+
   private updateProcessStepStatus (step: BriefProcessStep, data: Pick<ProcessStep, 'status' | 'transactionId' | 'extrinsicHash' | 'chain'>) {
     const { processId, stepId } = step;
     const process = this.aliveProcessMap.get(processId);
@@ -1459,7 +1471,7 @@ export default class TransactionService {
         }
       }
 
-      if (process.steps.some((item) => item.status === StepStatus.PROCESSING)) {
+      if (process.steps.some((item) => [StepStatus.PROCESSING, StepStatus.SUBMITTING].includes(item.status))) {
         process.status = StepStatus.PROCESSING;
       }
 

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { _ChainAsset } from '@subwallet/chain-list/types';
-import { APIItemState, ChainStakingMetadata, CrowdloanItem, MantaPayConfig, NftCollection, NftItem, NominatorMetadata, PriceJson, StakingItem, StakingType, TransactionHistoryItem } from '@subwallet/extension-base/background/KoniTypes';
+import { APIItemState, ChainStakingMetadata, CrowdloanItem, ExtrinsicStatus, MantaPayConfig, NftCollection, NftItem, NominatorMetadata, PriceJson, StakingItem, StakingType, TransactionHistoryItem } from '@subwallet/extension-base/background/KoniTypes';
 import { EventService } from '@subwallet/extension-base/services/event-service';
 import { _NotificationInfo } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import KoniDatabase, { IBalance, ICampaign, IChain, ICrowdloanItem, INft } from '@subwallet/extension-base/services/storage-service/databases';
@@ -16,7 +16,7 @@ import NominatorMetadataStore from '@subwallet/extension-base/services/storage-s
 import { HistoryQuery } from '@subwallet/extension-base/services/storage-service/db-stores/Transaction';
 import YieldPoolStore from '@subwallet/extension-base/services/storage-service/db-stores/YieldPoolStore';
 import YieldPositionStore from '@subwallet/extension-base/services/storage-service/db-stores/YieldPositionStore';
-import { BalanceItem, ProcessTransactionData, YieldPoolInfo, YieldPoolType, YieldPositionInfo } from '@subwallet/extension-base/types';
+import { BalanceItem, ProcessTransactionData, StepStatus, YieldPoolInfo, YieldPoolType, YieldPositionInfo } from '@subwallet/extension-base/types';
 import { GetNotificationParams, RequestSwitchStatusParams } from '@subwallet/extension-base/types/notification';
 import { BN_ZERO, reformatAddress } from '@subwallet/extension-base/utils';
 import keyring from '@subwallet/ui-keyring';
@@ -326,14 +326,98 @@ export default class DatabaseService {
     return this.stores.transaction.bulkUpsert(cleanedHistory);
   }
 
-  async updateHistoryByExtrinsicHash (extrinsicHash: string, updateData: Partial<TransactionHistoryItem>) {
+  async updateHistoryByExtrinsicHash (extrinsicHash: string, updateData: Partial<TransactionHistoryItem>, isRecover: boolean) {
     const canUpdate = updateData && extrinsicHash;
 
     if (!canUpdate) {
       return;
     }
 
+    if (isRecover) {
+      this.recoverProcessTransaction(extrinsicHash, updateData).catch(console.error);
+    }
+
     return this.stores.transaction.updateWithQuery({ extrinsicHash }, updateData);
+  }
+
+  async restoreProcessTransaction () {
+    const processes = await this.stores.processTransactions.getSubmittingProcess();
+    const queuedProcesses = processes.filter((process) => process.status === StepStatus.QUEUED);
+    const processingProcesses = processes.filter((process) => process.status === StepStatus.PROCESSING);
+
+    await this.stores.processTransactions.bulkDelete(queuedProcesses.map((process) => process.id));
+
+    for (const process of processingProcesses) {
+      const currentStepId = process.currentStepId;
+      const currentStep = process.steps.find((step) => step.id === currentStepId);
+
+      if (currentStep) {
+        const currentStepStatus = currentStep.status;
+
+        if ([StepStatus.QUEUED, StepStatus.PREPARE].includes(currentStepStatus)) {
+          currentStep.status = StepStatus.CANCELLED;
+          process.status = StepStatus.CANCELLED;
+        } else if (currentStepStatus === StepStatus.TIMEOUT) {
+          currentStep.status = StepStatus.CANCELLED;
+        }
+
+        const nextSteps = process.steps.filter((step) => step.id > currentStepId);
+
+        for (const step of nextSteps) {
+          step.status = StepStatus.CANCELLED;
+        }
+      }
+    }
+
+    await this.stores.processTransactions.bulkUpsert(processingProcesses);
+  }
+
+  async recoverProcessTransaction (extrinsicHash: string, updateData: Partial<TransactionHistoryItem>) {
+    const txs = await this.stores.transaction.queryHistory({ extrinsicHash });
+
+    const map = new Map<string, string>(txs.filter((x) => !!x.processId).map((tx) => [tx.processId || '', tx.transactionId || '']));
+
+    if (map.size && updateData.status) {
+      const processes = await this.stores.processTransactions.getByIds(Array.from(map.keys()));
+
+      for (const [processId, process] of Object.entries(processes)) {
+        const txId = map.get(processId);
+
+        if (txId) {
+          const currentStep = process.steps.find((tx) => tx.transactionId === txId);
+
+          if (currentStep) {
+            if (currentStep.status === StepStatus.PROCESSING || currentStep.status === StepStatus.SUBMITTING) {
+              switch (updateData.status) {
+                case ExtrinsicStatus.SUCCESS:
+                  currentStep.status = StepStatus.COMPLETE;
+                  break;
+                case ExtrinsicStatus.FAIL:
+                  currentStep.status = StepStatus.FAILED;
+                  break;
+                case ExtrinsicStatus.UNKNOWN:
+                  currentStep.status = StepStatus.TIMEOUT;
+                  break;
+              }
+            }
+
+            const isLastStep = process.steps[process.steps.length - 1].id === currentStep.id;
+
+            if (isLastStep) {
+              process.status = currentStep.status;
+            } else {
+              if (currentStep.status === StepStatus.TIMEOUT) {
+                process.status = StepStatus.TIMEOUT;
+              } else {
+                process.status = StepStatus.CANCELLED;
+              }
+            }
+
+            await this.stores.processTransactions.upsert(process);
+          }
+        }
+      }
+    }
   }
 
   // NFT Collection
@@ -685,8 +769,6 @@ export default class DatabaseService {
   }
 
   public upsertProcessTransaction (processTransaction: ProcessTransactionData) {
-    console.debug('upsertProcessTransaction', processTransaction);
-
     return this.stores.processTransactions.upsert(processTransaction);
   }
 
@@ -704,6 +786,10 @@ export default class DatabaseService {
 
   public observableProcessTransactionById (processId: string) {
     return this.stores.processTransactions.observableOne(processId);
+  }
+
+  public deleteProcessTransactionById (processId: string) {
+    return this.stores.processTransactions.delete(processId);
   }
 
   // public setAssetRef (assetRef: Record<string, _AssetRef>) {
