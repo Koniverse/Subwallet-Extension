@@ -15,6 +15,9 @@ import { BN, BN_TEN, BN_ZERO } from '@polkadot/util';
 
 import { calculateReward } from '../../utils';
 
+export interface TaoStakeInfo {
+  stake: string;
+}
 interface TaoStakingStakeOption {
   owner: string,
   amount: string,
