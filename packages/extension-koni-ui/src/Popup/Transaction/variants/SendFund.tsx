@@ -232,6 +232,12 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     return currentChainAsset ? _getAssetDecimals(currentChainAsset) : 0;
   }, [currentChainAsset]);
 
+  const nativeTokenSlug = useMemo(() => {
+    const chainInfo = chainInfoMap[chainValue];
+
+    return chainInfo && _getChainNativeTokenSlug(chainInfo);
+  }, [chainInfoMap, chainValue]);
+
   const extrinsicType = useMemo((): ExtrinsicType => {
     if (!currentChainAsset) {
       return ExtrinsicType.UNKNOWN;
@@ -457,6 +463,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const handleBasicSubmit = useCallback((values: TransferParams, options: TransferOptions): Promise<SWTransactionResponse> => {
     const { asset, chain, destChain, from, to, value } = values;
     let sendPromise: Promise<SWTransactionResponse>;
+    const nonNativeTokenPayFeeSlug = currentNonNativeTokenPayFee !== nativeTokenSlug ? currentNonNativeTokenPayFee : undefined;
 
     if (chain === destChain) {
       // Transfer token or send fund
@@ -470,7 +477,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
+        nonNativeTokenPayFeeSlug: nonNativeTokenPayFeeSlug
       });
     } else {
       // Make cross chain transfer
@@ -485,12 +492,12 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
+        nonNativeTokenPayFeeSlug: nonNativeTokenPayFeeSlug
       });
     }
 
     return sendPromise;
-  }, [selectedTransactionFee, currentNonNativeTokenPayFee]);
+  }, [currentNonNativeTokenPayFee, nativeTokenSlug, selectedTransactionFee?.feeOption, selectedTransactionFee?.feeCustom]);
 
   // todo: must refactor later, temporary solution to support SnowBridge
   const handleBridgeSpendingApproval = useCallback((values: TransferParams): Promise<SWTransactionResponse> => {
@@ -577,12 +584,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const onSetTokenPayFee = useCallback((slug: string) => {
     setCurrentNonNativeTokenPayFee(slug);
   }, [setCurrentNonNativeTokenPayFee]);
-
-  const nativeTokenSlug = useMemo(() => {
-    const chainInfo = chainInfoMap[chainValue];
-
-    return chainInfo && _getChainNativeTokenSlug(chainInfo);
-  }, [chainInfoMap, chainValue]);
 
   const onSubmit: FormCallbacks<TransferParams>['onFinish'] = useCallback((values: TransferParams) => {
     const options: TransferOptions = {
