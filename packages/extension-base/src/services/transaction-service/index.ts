@@ -325,18 +325,22 @@ export default class TransactionService {
 
     emitter.on('signed', (data: TransactionEventResponse) => {
       this.onSigned(data);
-
-      if (step) {
-        this.updateProcessStepStatus(step, { transactionId: transaction.id, status: StepStatus.PROCESSING, chain: transaction.chain });
-      }
     });
 
     emitter.on('send', (data: TransactionEventResponse) => {
       this.onSend(data);
+
+      if (step) {
+        this.updateProcessStepStatus(step, { transactionId: transaction.id, status: StepStatus.SUBMITTING, chain: transaction.chain });
+      }
     });
 
     emitter.on('extrinsicHash', (data: TransactionEventResponse) => {
       this.onHasTransactionHash(data);
+
+      if (step) {
+        this.updateProcessStepStatus(step, { extrinsicHash: data.extrinsicHash, status: StepStatus.PROCESSING });
+      }
     });
 
     emitter.on('success', (data: TransactionEventResponse) => {
@@ -344,7 +348,7 @@ export default class TransactionService {
       this.onSuccess(data);
 
       if (step) {
-        this.updateProcessStepStatus(step, { status: StepStatus.COMPLETE, extrinsicHash: data.extrinsicHash });
+        this.updateProcessStepStatus(step, { status: StepStatus.COMPLETE });
       }
     });
 
@@ -359,6 +363,10 @@ export default class TransactionService {
 
     emitter.on('timeout', (data: TransactionEventResponse) => {
       this.onTimeOut({ ...data, errors: [...data.errors, new TransactionError(BasicTxErrorType.TIMEOUT)] });
+
+      if (step) {
+        this.updateProcessStepStatus(step, { status: StepStatus.TIMEOUT });
+      }
     });
 
     // Todo: handle any event with transaction.eventsHandler
@@ -1442,11 +1450,21 @@ export default class TransactionService {
             nextStep.status = StepStatus.PREPARE;
             process.currentStepId = nextStep.id;
           }
+        } else if ([StepStatus.FAILED, StepStatus.TIMEOUT].includes(step.status)) {
+          const nextSteps = process.steps.filter((item) => item.id > stepId);
+
+          nextSteps.forEach((item) => {
+            item.status = StepStatus.CANCELLED;
+          });
         }
       }
 
       if (process.steps.some((item) => item.status === StepStatus.PROCESSING)) {
         process.status = StepStatus.PROCESSING;
+      }
+
+      if (process.steps.some((item) => item.status === StepStatus.TIMEOUT)) {
+        process.status = StepStatus.TIMEOUT;
       }
 
       if (process.steps.every((item) => item.status === StepStatus.COMPLETE)) {
@@ -1464,7 +1482,7 @@ export default class TransactionService {
       this.aliveProcessMap.set(processId, process);
       this.state.dbService.upsertProcessTransaction(process).catch(console.error);
 
-      if (process.status === StepStatus.COMPLETE || process.status === StepStatus.FAILED) {
+      if ([StepStatus.COMPLETE, StepStatus.FAILED, StepStatus.TIMEOUT].includes(process.status)) {
         this.aliveProcessMap.delete(processId);
       }
 

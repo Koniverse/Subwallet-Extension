@@ -29,12 +29,15 @@ export interface RequestSubmitProcessTransaction {
 export enum StepStatus {
   QUEUED = 'QUEUED',
   PREPARE = 'PREPARE',
+  SUBMITTING = 'SUBMITTING',
   PROCESSING = 'PROCESSING',
   COMPLETE = 'COMPLETE',
-  FAILED = 'FAILED'
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+  TIMEOUT = 'TIMEOUT'
 }
 
-export const PROCESSING_STEP_STATUS: StepStatus[] = [StepStatus.PREPARE, StepStatus.PROCESSING];
+export const PROCESSING_STEP_STATUS: StepStatus[] = [StepStatus.PREPARE, StepStatus.SUBMITTING, StepStatus.PROCESSING];
 
 export interface ProcessStep extends CommonStepDetail {
   fee: CommonStepFeeInfo;
