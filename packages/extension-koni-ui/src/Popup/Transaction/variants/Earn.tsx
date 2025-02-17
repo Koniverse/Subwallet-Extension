@@ -531,9 +531,7 @@ const Component = () => {
               return await submitData(step + 1);
             }
           } else {
-            if (oneSign
-            // && path.steps.length > 2
-            ) {
+            if (oneSign && path.steps.length > 2) {
               const submitPromise: Promise<SWTransactionResponse> = submitProcess({
                 address: from,
                 id: processId,
