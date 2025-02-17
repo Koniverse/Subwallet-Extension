@@ -1620,14 +1620,13 @@ export default class KoniExtension {
 
   private async getTokensCanPayFee (request: RequestGetTokensCanPayFee): Promise<TokenHasBalanceInfo[]> {
     const { chain, feeAmount, proxyId } = request;
-
     const chainService = this.#koniState.chainService;
     const substrateApi = this.#koniState.getSubstrateApi(chain);
 
+    // ensure nativeTokenInfo and localTokenInfo have multi-location metadata beforehand to improve performance.
     const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalance(proxyId, chain);
     const tokensHasBalanceSlug = Object.keys(tokensHasBalanceInfoMap);
     const tokenInfos = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.assetType !== _AssetType.NATIVE && token.metadata && token.metadata.multilocation);
-
     const nativeTokenInfo = chainService.getNativeTokenInfo(chain);
 
     if (!nativeTokenInfo.metadata || !nativeTokenInfo.metadata.multilocation) {
@@ -1645,7 +1644,12 @@ export default class KoniExtension {
     await Promise.all(tokenInfos.map(async (tokenInfo) => {
       const tokenSlug = tokenInfo.slug;
       const reserve = await getReserveForPool(substrateApi.api, nativeTokenInfo, tokenInfo);
-      const rate = new BigN(reserve[1]).div(reserve[0]).toString()
+
+      if (!reserve || !reserve[0] || !reserve[1]) {
+        return false;
+      }
+
+      const rate = new BigN(reserve[1]).div(reserve[0]).toString();
       const tokenCanPayFee = {
         slug: tokenSlug,
         free: tokensHasBalanceInfoMap[tokenSlug].free,

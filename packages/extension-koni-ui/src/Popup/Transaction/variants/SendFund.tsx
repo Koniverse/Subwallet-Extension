@@ -841,7 +841,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       cancel = true;
       id && cancelSubscription(id).catch(console.error);
     };
-  }, [assetValue, assetRegistry, chainValue, chainStatus, form, fromValue, destChainValue, selectedTransactionFee, isTransferLocalTokenAndPayThatTokenAsFee, nativeTokenSlug, currentNonNativeTokenPayFee]);
+  }, [assetValue, assetRegistry, chainValue, chainStatus, form, fromValue, destChainValue, selectedTransactionFee, nativeTokenSlug, currentNonNativeTokenPayFee]);
 
   useEffect(() => {
     const bnTransferAmount = new BN(transferAmountValue || '0');
