@@ -1036,7 +1036,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           selectedFeeOption={selectedTransactionFee}
           tokenPayFeeSlug={currentNonNativeTokenPayFee || nativeTokenSlug}
           tokenSlug={assetValue}
-                                                                 />)}
+        />)}
         {
           chainValue !== destChainValue && (
             <div className={'__warning_message_cross_chain'}>
