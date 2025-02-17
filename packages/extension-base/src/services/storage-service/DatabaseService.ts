@@ -334,7 +334,7 @@ export default class DatabaseService {
     }
 
     if (isRecover) {
-      this.recoverProcessTransaction(extrinsicHash, updateData).catch(console.error);
+      await this.recoverProcessTransaction(extrinsicHash, updateData);
     }
 
     return this.stores.transaction.updateWithQuery({ extrinsicHash }, updateData);
@@ -375,7 +375,7 @@ export default class DatabaseService {
   async recoverProcessTransaction (extrinsicHash: string, updateData: Partial<TransactionHistoryItem>) {
     const txs = await this.stores.transaction.queryHistory({ extrinsicHash });
 
-    const map = new Map<string, string>(txs.filter((x) => !!x.processId).map((tx) => [tx.processId || '', tx.transactionId || '']));
+    const map = new Map<string, string>(txs.filter((x) => !!x.processId && x.extrinsicHash === extrinsicHash).map((tx) => [tx.processId || '', tx.transactionId || '']));
 
     if (map.size && updateData.status) {
       const processes = await this.stores.processTransactions.getByIds(Array.from(map.keys()));
