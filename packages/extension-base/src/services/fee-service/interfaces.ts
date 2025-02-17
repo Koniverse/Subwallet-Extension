@@ -4,4 +4,5 @@
 export interface TokenHasBalanceInfo {
   slug: string;
   free: string;
+  rate: number; // rate = nativeToken / payFeeToken
 }

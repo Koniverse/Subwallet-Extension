@@ -915,27 +915,27 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     });
   }, [chainValue, currentAccountProxy?.id, fromValue, nativeTokenBalance, nativeTokenSlug]);
 
-  useEffect(() => {
-    if (currentNonNativeTokenPayFee && currentNonNativeTokenPayFee !== nativeTokenSlug) {
-      const getEstimatedFee = async () => {
-        try {
-          const tokenPayFeeAmount = await getAmountForPair({
-            nativeTokenSlug,
-            nativeTokenFeeAmount: estimatedNativeFee,
-            toTokenSlug: currentNonNativeTokenPayFee
-          });
-
-          setNonNativeTokenPayFeeAmount(tokenPayFeeAmount);
-        } catch (error) {
-          console.error('Error fetching tokens:', error);
-        }
-      };
-
-      getEstimatedFee().catch((error) => {
-        console.error('Unhandled error in getEstimatedFee:', error);
-      });
-    }
-  }, [chainInfoMap, chainValue, currentNonNativeTokenPayFee, estimatedNativeFee, nativeTokenSlug]);
+  // useEffect(() => {
+  //   if (currentNonNativeTokenPayFee && currentNonNativeTokenPayFee !== nativeTokenSlug) {
+  //     const getEstimatedFee = async () => {
+  //       try {
+  //         const tokenPayFeeAmount = await getAmountForPair({
+  //           nativeTokenSlug,
+  //           nativeTokenFeeAmount: estimatedNativeFee,
+  //           toTokenSlug: currentNonNativeTokenPayFee
+  //         });
+  //
+  //         setNonNativeTokenPayFeeAmount(tokenPayFeeAmount);
+  //       } catch (error) {
+  //         console.error('Error fetching tokens:', error);
+  //       }
+  //     };
+  //
+  //     getEstimatedFee().catch((error) => {
+  //       console.error('Unhandled error in getEstimatedFee:', error);
+  //     });
+  //   }
+  // }, [chainInfoMap, chainValue, currentNonNativeTokenPayFee, estimatedNativeFee, nativeTokenSlug]);
 
   useEffect(() => {
     const isNonNativeToken = assetValue && !assetValue.includes(_AssetType.NATIVE) && currentNonNativeTokenPayFee && !currentNonNativeTokenPayFee.includes(_AssetType.NATIVE);
