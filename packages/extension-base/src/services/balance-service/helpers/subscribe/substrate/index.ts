@@ -17,7 +17,7 @@ import { getDefaultWeightV2 } from '@subwallet/extension-base/koni/api/contract-
 import { _BALANCE_CHAIN_GROUP, _MANTA_ZK_CHAIN_GROUP, _ZK_ASSET_PREFIX } from '@subwallet/extension-base/services/chain-service/constants';
 import { _EvmApi, _SubstrateAdapterSubscriptionArgs, _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _checkSmartContractSupportByChain, _getAssetExistentialDeposit, _getChainExistentialDeposit, _getChainNativeTokenSlug, _getContractAddressOfToken, _getTokenOnChainAssetId, _getTokenOnChainInfo, _getTokenTypesSupportedByChain, _getXcmAssetMultilocation, _isBridgedToken, _isChainEvmCompatible } from '@subwallet/extension-base/services/chain-service/utils';
-import { TaoStakeInfo } from '@subwallet/extension-base/services/earning-service/handlers/native-staking/tao';
+import { getTaoToAlphaMapping, TaoStakeInfo } from '@subwallet/extension-base/services/earning-service/handlers/native-staking/tao';
 import { BalanceItem, SubscribeBasePalletBalance, SubscribeSubstratePalletBalance } from '@subwallet/extension-base/types';
 import { filterAssetsByChainAndType } from '@subwallet/extension-base/utils';
 import BigN from 'bignumber.js';
@@ -148,12 +148,18 @@ const subscribeWithSystemAccountPallet = async ({ addresses, callback, chainInfo
   if (['bittensor'].includes(chainInfo.slug)) {
     bittensorStakingBalances = await Promise.all(addresses.map(async (address) => {
       const stakeInfo = (await substrateApi.api.call.stakeInfoRuntimeApi.getStakeInfoForColdkey(address)).toJSON() as Record<string, TaoStakeInfo> | undefined;
-
-      let TaoTotalStake = BigInt(0);
+      const price = await getTaoToAlphaMapping(substrateApi);
+      let TaoTotalStake = new BigN(0);
 
       if (stakeInfo) {
         for (const validator of Object.values(stakeInfo)) {
-          TaoTotalStake += BigInt(validator.stake);
+          const stake = new BigN(validator.stake);
+          const netuid = validator.netuid;
+          const taoToAlphaPrice = price[netuid] ? new BigN(price[netuid]) : new BigN(1);
+
+          const taoStake = stake.multipliedBy(taoToAlphaPrice).toFixed(0).toString();
+
+          TaoTotalStake = TaoTotalStake.plus(taoStake);
         }
       }
 
