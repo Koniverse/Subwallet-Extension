@@ -5,7 +5,7 @@ import { ConfirmationResult } from '@subwallet/extension-base/background/KoniTyp
 import { ConfirmationRequestBase } from '@subwallet/extension-base/background/types';
 import { AccountJson } from '@subwallet/extension-base/types';
 import { detectTranslate } from '@subwallet/extension-base/utils';
-import { AccountItemWithName, ConfirmationGeneralInfo } from '@subwallet/extension-web-ui/components';
+import { AccountItemWithProxyAvatar, ConfirmationGeneralInfo } from '@subwallet/extension-web-ui/components';
 import { NEED_SIGN_CONFIRMATION } from '@subwallet/extension-web-ui/constants';
 import { useGetAccountTitleByAddress } from '@subwallet/extension-web-ui/hooks';
 import { cancelSignRequest, completeConfirmation } from '@subwallet/extension-web-ui/messaging';
@@ -85,13 +85,11 @@ const Component: React.FC<Props> = (props: Props) => {
             values={{ accountTitle }}
           />
         </div>
-        <AccountItemWithName
-          accountName={account?.name}
-          address={account?.address || ''}
-          avatarSize={24}
+        {account && <AccountItemWithProxyAvatar
+          account={account}
           className='account-item'
           showUnselectIcon={true}
-        />
+        />}
       </div>
       <div className='confirmation-footer'>
         <Button
@@ -112,14 +110,12 @@ const NotSupportConfirmation = styled(Component)<Props>(({ theme: { token } }: P
     },
 
     '.account-item': {
-      '.ant-web3-block': {
-        cursor: 'not-allowed',
-        opacity: token.opacityDisable
-      },
+      cursor: 'not-allowed',
+      opacity: token.opacityDisable,
+      background: token.colorBgSecondary,
 
-      '.ant-web3-block:hover': {
-        cursor: 'not-allowed',
-        background: token.colorBgSecondary
+      '&:hover': {
+        cursor: 'not-allowed'
       }
     }
   };
