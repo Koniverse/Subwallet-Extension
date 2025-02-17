@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ProcessTransactionData, ProcessType, ResponseSubscribeProcessById } from '@subwallet/extension-base/types';
-import { TRANSACTION_PROGRESS_DETAIL_MODAL } from '@subwallet/extension-koni-ui/constants';
+import { TRANSACTION_PROCESS_DETAIL_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { cancelSubscription, subscribeProcess } from '@subwallet/extension-koni-ui/messaging';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Button, ModalContext, SwModal } from '@subwallet/react-ui';
@@ -10,8 +10,8 @@ import React, { FC, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
-import { CurrentProgressStep } from './parts/CurrentProgressStep';
-import { ProgressStepList } from './parts/ProgressStepList';
+import { CurrentProcessStep } from './parts/CurrentProcessStep';
+import { ProcessStepList } from './parts/ProcessStepList';
 import { TransactionInfoBlock } from './parts/TransactionInfoBlock';
 
 type Props = ThemeProps & {
@@ -19,30 +19,30 @@ type Props = ThemeProps & {
   onCancel: () => void;
 };
 
-const modalId = TRANSACTION_PROGRESS_DETAIL_MODAL;
+const modalId = TRANSACTION_PROCESS_DETAIL_MODAL;
 
 const Component: FC<Props> = (props: Props) => {
   const { className, onCancel, processId } = props;
   const { t } = useTranslation();
   const { inactiveModal } = useContext(ModalContext);
 
-  const [progressData, setProgressData] = useState<ProcessTransactionData | undefined>();
+  const [processData, setProcessData] = useState<ProcessTransactionData | undefined>();
 
   const modalTitle = useMemo(() => {
-    if (!progressData) {
+    if (!processData) {
       return '';
     }
 
-    if (progressData.type === ProcessType.SWAP) {
+    if (processData.type === ProcessType.SWAP) {
       return t('Swap details');
     }
 
-    if (progressData.type === ProcessType.EARNING) {
+    if (processData.type === ProcessType.EARNING) {
       return t('Stake details');
     }
 
     return t('Transaction details');
-  }, [progressData, t]);
+  }, [processData, t]);
 
   useEffect(() => {
     let cancel = false;
@@ -60,7 +60,7 @@ const Component: FC<Props> = (props: Props) => {
       const updateProcess = (data: ResponseSubscribeProcessById) => {
         if (!cancel) {
           id = data.id;
-          setProgressData(data.process);
+          setProcessData(data.process);
         } else {
           onCancel();
         }
@@ -77,7 +77,7 @@ const Component: FC<Props> = (props: Props) => {
     };
   }, [inactiveModal, processId]);
 
-  if (!progressData) {
+  if (!processData) {
     return null;
   }
 
@@ -97,23 +97,23 @@ const Component: FC<Props> = (props: Props) => {
       onCancel={onCancel}
       title={modalTitle}
     >
-      <CurrentProgressStep
-        className={'__current-progress-step-block'}
-        progressData={progressData}
+      <CurrentProcessStep
+        className={'__current-process-step-block'}
+        processData={processData}
       />
       <TransactionInfoBlock
         className={'__transaction-info-block'}
-        progressData={progressData}
+        processData={processData}
       />
-      <ProgressStepList
-        className={'__progress-step-list'}
-        progressData={progressData}
+      <ProcessStepList
+        className={'__process-step-list'}
+        processData={processData}
       />
     </SwModal>
   );
 };
 
-const TransactionProgressDetailModal = styled(Component)<Props>(({ theme: { token } }: Props) => {
+const TransactionProcessDetailModal = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return ({
     '.ant-sw-modal-content.ant-sw-modal-content': {
       paddingBottom: 0
@@ -127,7 +127,7 @@ const TransactionProgressDetailModal = styled(Component)<Props>(({ theme: { toke
       borderTop: 0
     },
 
-    '.__current-progress-step-block': {
+    '.__current-process-step-block': {
       marginBottom: token.marginSM
     },
 
@@ -137,4 +137,4 @@ const TransactionProgressDetailModal = styled(Component)<Props>(({ theme: { toke
   });
 });
 
-export default TransactionProgressDetailModal;
+export default TransactionProcessDetailModal;

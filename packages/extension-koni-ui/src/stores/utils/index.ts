@@ -522,5 +522,5 @@ export const updateAliveProcess = (data: ResponseSubscribeProcessAlive) => {
   store.dispatch({ type: 'requestState/updateAliveProcess', payload: data.processes });
 };
 
-export const subscribeHasAliveProcess = lazySubscribeMessage('pri(process.subscribe.alive)', null, updateAliveProcess, updateAliveProcess);
+export const subscribeAliveProcess = lazySubscribeMessage('pri(process.subscribe.alive)', null, updateAliveProcess, updateAliveProcess);
 /* Process multi steps */

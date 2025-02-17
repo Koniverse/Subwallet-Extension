@@ -12,21 +12,21 @@ import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
 type Props = ThemeProps & {
-  progressData: ProcessTransactionData
+  processData: ProcessTransactionData
 };
 
 const Component: FC<Props> = (props: Props) => {
-  const { className, progressData } = props;
+  const { className, processData } = props;
   const { t } = useTranslation();
 
   const iconProp = useMemo<SwIconProps>(() => {
     const iconInfo: SwIconProps = (() => {
-      if (progressData.status === StepStatus.COMPLETE) {
+      if (processData.status === StepStatus.COMPLETE) {
         return {
           phosphorIcon: CheckCircle,
           weight: 'fill'
         };
-      } else if (progressData.status === StepStatus.FAILED) {
+      } else if (processData.status === StepStatus.FAILED) {
         return {
           phosphorIcon: ProhibitInset,
           weight: 'fill'
@@ -42,30 +42,30 @@ const Component: FC<Props> = (props: Props) => {
       ...iconInfo,
       size: 'md'
     };
-  }, [progressData.status]);
+  }, [processData.status]);
 
   const currentStep: ProcessStep | undefined = useMemo(() => {
-    const first = progressData.steps.find((s) => s.status === StepStatus.PROCESSING);
+    const first = processData.steps.find((s) => s.status === StepStatus.PROCESSING);
 
     if (first) {
       return first;
     }
 
-    const second = progressData.steps.slice().reverse().find((s) => [StepStatus.COMPLETE, StepStatus.FAILED].includes(s.status));
+    const second = processData.steps.slice().reverse().find((s) => [StepStatus.COMPLETE, StepStatus.FAILED].includes(s.status));
 
     if (second) {
       return second;
     }
 
-    return progressData.steps[0];
-  }, [progressData.steps]);
+    return processData.steps[0];
+  }, [processData.steps]);
 
   const title = useMemo(() => {
-    if (progressData.status === StepStatus.COMPLETE) {
+    if (processData.status === StepStatus.COMPLETE) {
       return t('Success');
     }
 
-    if (progressData.status === StepStatus.FAILED) {
+    if (processData.status === StepStatus.FAILED) {
       return t('Failed');
     }
 
@@ -104,23 +104,23 @@ const Component: FC<Props> = (props: Props) => {
       return t('Stake token');
     }
 
-    // if (progressData.type === ProcessType.SWAP) {
+    // if (processData.type === ProcessType.SWAP) {
     //   //
     // }
     //
-    // if (progressData.type === ProcessType.EARNING) {
+    // if (processData.type === ProcessType.EARNING) {
     //   //
     // }
 
     return '';
-  }, [currentStep, progressData.status, t]);
+  }, [currentStep, processData.status, t]);
 
   return (
     <div
       className={CN(className, {
-        '-processing': ![StepStatus.COMPLETE, StepStatus.FAILED].includes(progressData.status),
-        '-complete': progressData.status === StepStatus.COMPLETE,
-        '-failed': progressData.status === StepStatus.FAILED
+        '-processing': ![StepStatus.COMPLETE, StepStatus.FAILED].includes(processData.status),
+        '-complete': processData.status === StepStatus.COMPLETE,
+        '-failed': processData.status === StepStatus.FAILED
       })}
     >
       <Icon
@@ -135,7 +135,7 @@ const Component: FC<Props> = (props: Props) => {
   );
 };
 
-export const CurrentProgressStep = styled(Component)<Props>(({ theme: { token } }: Props) => {
+export const CurrentProcessStep = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return ({
     display: 'flex',
     alignItems: 'center',

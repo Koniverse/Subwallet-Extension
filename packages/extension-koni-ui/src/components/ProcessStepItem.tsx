@@ -10,14 +10,14 @@ import { CheckCircle, ProhibitInset, SpinnerGap } from 'phosphor-react';
 import React, { FC, useMemo } from 'react';
 import styled from 'styled-components';
 
-export type ProgressStepItemType = {
+export type ProcessStepItemType = {
   status: StepStatus;
   text: string;
   index: number,
   isLastItem?: boolean;
 }
 
-type Props = ThemeProps & ProgressStepItemType;
+type Props = ThemeProps & ProcessStepItemType;
 
 const Component: FC<Props> = (props: Props) => {
   const { className, index, isLastItem, status, text } = props;
@@ -90,7 +90,7 @@ const Component: FC<Props> = (props: Props) => {
   );
 };
 
-export const ProgressStepItem = styled(Component)<Props>(({ theme: { token } }: Props) => {
+export const ProcessStepItem = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return ({
     display: 'flex',
     gap: token.sizeXS,

@@ -12,9 +12,9 @@ import { YieldProcessConfirmation } from './JoinYieldPool';
 type Props = TransactionInfoBlockProps;
 
 export const Earn: FC<Props> = (props: Props) => {
-  const { progressData } = props;
+  const { processData } = props;
 
-  const type = useMemo(() => (progressData.combineInfo as SummaryEarningProcessData).type, [progressData]);
+  const type = useMemo(() => (processData.combineInfo as SummaryEarningProcessData).type, [processData]);
 
   if (type === EarningProcessType.NATIVE_STAKING) {
     return <NativeStakingProcessConfirmation {...props} />;

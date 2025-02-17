@@ -16,10 +16,10 @@ import { TransactionInfoBlockProps } from '../types';
 type Props = TransactionInfoBlockProps;
 
 const Component: React.FC<Props> = (props: Props) => {
-  const { className, progressData } = props;
+  const { className, processData } = props;
   const { t } = useTranslation();
 
-  const combineInfo = useMemo(() => (progressData.combineInfo as SummaryEarningProcessData), [progressData.combineInfo]);
+  const combineInfo = useMemo(() => (processData.combineInfo as SummaryEarningProcessData), [processData.combineInfo]);
   const txParams = useMemo(() => (combineInfo.data as unknown as SubmitYieldStepData), [combineInfo.data]);
 
   const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
@@ -52,7 +52,7 @@ const Component: React.FC<Props> = (props: Props) => {
   }, [txParams.amount, txParams.exchangeRate]);
 
   const estimatedFeeValue = useMemo(() => {
-    const feeComponents: CommonFeeComponent[] = progressData.steps.reduce((previousValue, currentStep) => {
+    const feeComponents: CommonFeeComponent[] = processData.steps.reduce((previousValue, currentStep) => {
       return [
         ...previousValue,
         ...currentStep.fee.feeComponent
@@ -60,7 +60,7 @@ const Component: React.FC<Props> = (props: Props) => {
     }, [] as CommonFeeComponent[]);
 
     return getCurrentCurrencyTotalFee(feeComponents, assetRegistryMap, priceMap);
-  }, [assetRegistryMap, priceMap, progressData.steps]);
+  }, [assetRegistryMap, priceMap, processData.steps]);
 
   return (
     <div className={CN(className)}>

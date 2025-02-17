@@ -70,9 +70,9 @@ const alertModalId = 'notification-alert-modal';
 
 function Component ({ className = '' }: Props): React.ReactElement<Props> {
   const [searchParams] = useSearchParams();
-  const paramTransactionProgressId = searchParams.get('transaction-progress-id');
+  const paramTransactionProcessId = searchParams.get('transaction-process-id');
   const { activeModal, checkActive } = useContext(ModalContext);
-  const { transactionProgressDetailModal: { open: openTransactionProgressModal } } = useContext(WalletModalContext);
+  const { transactionProcessDetailModal: { open: openTransactionProcessModal } } = useContext(WalletModalContext);
 
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -208,7 +208,7 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
   }, [activeModal]);
 
   // todo: may have more conditions
-  const forceGoHome = !!paramTransactionProgressId;
+  const forceGoHome = !!paramTransactionProcessId;
 
   const onClickBack = useCallback(() => {
     setCurrentSearchText('');
@@ -424,7 +424,7 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
         case NotificationActionType.SWAP: {
           const metadata = item.metadata as ProcessNotificationMetadata;
 
-          openTransactionProgressModal(metadata.processId);
+          openTransactionProcessModal(metadata.processId);
 
           break;
         }
@@ -438,7 +438,7 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
           });
       }
     };
-  }, [accounts, showActiveChainModal, chainStateMap, chainsByAccountType, currentAccountProxy, currentTimestampMs, earningRewards, isAllAccount, isTrigger, navigate, poolInfoMap, setClaimAvailBridgeStorage, setClaimRewardStorage, setWithdrawStorage, showWarningModal, yieldPositions, openTransactionProgressModal]);
+  }, [accounts, showActiveChainModal, chainStateMap, chainsByAccountType, currentAccountProxy, currentTimestampMs, earningRewards, isAllAccount, isTrigger, navigate, poolInfoMap, setClaimAvailBridgeStorage, setClaimRewardStorage, setWithdrawStorage, showWarningModal, yieldPositions, openTransactionProcessModal]);
 
   const renderItem = useCallback((item: NotificationInfoItem) => {
     return (
@@ -534,10 +534,10 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
 
   useEffect(() => {
     // todo: may have more conditions
-    if (paramTransactionProgressId) {
-      openTransactionProgressModal(paramTransactionProgressId);
+    if (paramTransactionProcessId) {
+      openTransactionProcessModal(paramTransactionProcessId);
     }
-  }, [openTransactionProgressModal, paramTransactionProgressId]);
+  }, [openTransactionProcessModal, paramTransactionProcessId]);
 
   return (
     <PageWrapper className={`manage-website-access ${className}`}>

@@ -17,12 +17,12 @@ import { TransactionInfoBlockProps } from './types';
 type Props = TransactionInfoBlockProps;
 
 const Component: FC<Props> = (props: Props) => {
-  const { className, progressData } = props;
+  const { className, processData } = props;
 
   const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
   const { currencyData, priceMap } = useSelector((state) => state.price);
   const { t } = useTranslation();
-  const data = progressData.combineInfo as SwapBaseTxData;
+  const data = processData.combineInfo as SwapBaseTxData;
 
   const recipientAddress = data.recipient || data.address;
   const recipient = useGetAccountByAddress(recipientAddress);

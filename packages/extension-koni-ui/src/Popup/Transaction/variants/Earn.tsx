@@ -112,16 +112,16 @@ const Component = () => {
 
   const chainState = useFetchChainState(poolInfo?.chain || '');
 
-  const onHandleOneSignConfirmation = useCallback((transactionProgressId: string) => {
+  const onHandleOneSignConfirmation = useCallback((transactionProcessId: string) => {
     if (isPopup) {
       windowOpen({
         allowedPath: '/transaction-submission',
         params: {
-          'transaction-progress-id': transactionProgressId
+          'transaction-process-id': transactionProcessId
         }
       }).then(window.close).catch(console.log);
     } else {
-      navigate(`/transaction-submission?transaction-progress-id=${transactionProgressId}`);
+      navigate(`/transaction-submission?transaction-process-id=${transactionProcessId}`);
     }
   }, [isPopup, navigate]);
 

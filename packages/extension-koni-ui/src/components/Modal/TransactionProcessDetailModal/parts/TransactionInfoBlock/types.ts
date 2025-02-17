@@ -5,5 +5,5 @@ import { ProcessTransactionData } from '@subwallet/extension-base/types';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 
 export type TransactionInfoBlockProps = ThemeProps & {
-  progressData: ProcessTransactionData
+  processData: ProcessTransactionData
 }

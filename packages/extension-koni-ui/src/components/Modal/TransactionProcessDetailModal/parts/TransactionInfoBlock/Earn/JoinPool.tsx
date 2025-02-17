@@ -1,12 +1,10 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { RequestBondingSubmit, StakingType } from '@subwallet/extension-base/background/KoniTypes';
-import { getValidatorLabel } from '@subwallet/extension-base/koni/api/staking/bonding/utils';
-import { CommonFeeComponent, SummaryEarningProcessData } from '@subwallet/extension-base/types';
+import { CommonFeeComponent, SubmitJoinNominationPool, SummaryEarningProcessData } from '@subwallet/extension-base/types';
 import CommonTransactionInfo from '@subwallet/extension-koni-ui/components/Confirmation/CommonTransactionInfo';
 import MetaInfo from '@subwallet/extension-koni-ui/components/MetaInfo/MetaInfo';
-import { useGetChainPrefixBySlug, useSelector } from '@subwallet/extension-koni-ui/hooks';
+import { useSelector } from '@subwallet/extension-koni-ui/hooks';
 import useGetNativeTokenBasicInfo from '@subwallet/extension-koni-ui/hooks/common/useGetNativeTokenBasicInfo';
 import { getCurrentCurrencyTotalFee } from '@subwallet/extension-koni-ui/utils';
 import CN from 'classnames';
@@ -19,25 +17,18 @@ import { TransactionInfoBlockProps } from '../types';
 type Props = TransactionInfoBlockProps;
 
 const Component: React.FC<Props> = (props: Props) => {
-  const { className, progressData } = props;
-
-  const combineInfo = useMemo(() => (progressData.combineInfo as SummaryEarningProcessData), [progressData.combineInfo]);
-  const data = useMemo(() => (combineInfo.data as unknown as RequestBondingSubmit), [combineInfo.data]);
+  const { className, processData } = props;
+  const combineInfo = useMemo(() => (processData.combineInfo as SummaryEarningProcessData), [processData.combineInfo]);
+  const data = useMemo(() => (combineInfo.data as unknown as SubmitJoinNominationPool), [combineInfo.data]);
 
   const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
   const { currencyData, priceMap } = useSelector((state) => state.price);
 
-  const handleValidatorLabel = useMemo(() => {
-    return getValidatorLabel(combineInfo.brief.chain);
-  }, [combineInfo.brief.chain]);
-  const networkPrefix = useGetChainPrefixBySlug(combineInfo.brief.chain);
-
   const { t } = useTranslation();
-
   const { decimals, symbol } = useGetNativeTokenBasicInfo(combineInfo.brief.chain);
 
   const estimatedFeeValue = useMemo(() => {
-    const feeComponents: CommonFeeComponent[] = progressData.steps.reduce((previousValue, currentStep) => {
+    const feeComponents: CommonFeeComponent[] = processData.steps.reduce((previousValue, currentStep) => {
       return [
         ...previousValue,
         ...currentStep.fee.feeComponent
@@ -45,10 +36,11 @@ const Component: React.FC<Props> = (props: Props) => {
     }, [] as CommonFeeComponent[]);
 
     return getCurrentCurrencyTotalFee(feeComponents, assetRegistryMap, priceMap);
-  }, [assetRegistryMap, priceMap, progressData.steps]);
+  }, [assetRegistryMap, priceMap, processData.steps]);
 
   return (
     <div className={CN(className)}>
+
       <MetaInfo
         className={'meta-info'}
         hasBackgroundWrapper
@@ -60,12 +52,17 @@ const Component: React.FC<Props> = (props: Props) => {
           onlyReturnInnerContent
         />
 
-        <MetaInfo.AccountGroup
-          accounts={data.selectedValidators}
-          content={t(`{{number}} selected ${handleValidatorLabel.toLowerCase()}`, { replace: { number: data.selectedValidators.length } })}
-          identPrefix={networkPrefix}
-          label={t(data.type === StakingType.POOLED ? 'Pool' : handleValidatorLabel)}
+        <MetaInfo.Account
+          address={data.selectedPool.address}
+          label={t('Pool')}
+          networkPrefix={42}
         />
+
+        {/* <MetaInfo.AccountGroup */}
+        {/*  accounts={data.address} */}
+        {/*  content={t(`${data.selectedValidators.length} selected validators`)} */}
+        {/*  label={t('Pool')} */}
+        {/* /> */}
 
         <MetaInfo.Number
           decimals={decimals}
@@ -86,7 +83,7 @@ const Component: React.FC<Props> = (props: Props) => {
   );
 };
 
-export const NativeStakingProcessConfirmation = styled(Component)<Props>(({ theme: { token } }: Props) => {
+export const NominationPoolProcessConfirmation = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return {
     '.__meta-info-wrapper.__meta-info-wrapper': {
       paddingTop: token.padding,

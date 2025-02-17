@@ -10,11 +10,11 @@ import styled from 'styled-components';
 import { Item } from './Item';
 
 type Props = ThemeProps & {
-  progressData: ProcessTransactionData
+  processData: ProcessTransactionData
 };
 
 const Component: FC<Props> = (props: Props) => {
-  const { className, progressData } = props;
+  const { className, processData } = props;
   const { t } = useTranslation();
 
   return (
@@ -25,11 +25,11 @@ const Component: FC<Props> = (props: Props) => {
 
       <div className='__step-list-container'>
         {
-          progressData.steps.map((step, index) => (
+          processData.steps.map((step, index) => (
             <Item
-              combineInfo={progressData.combineInfo}
+              combineInfo={processData.combineInfo}
               index={index}
-              isLastItem={index === progressData.steps.length - 1}
+              isLastItem={index === processData.steps.length - 1}
               key={step.id}
               processStep={step}
             />
@@ -40,7 +40,7 @@ const Component: FC<Props> = (props: Props) => {
   );
 };
 
-export const ProgressStepList = styled(Component)<Props>(({ theme: { token } }: Props) => {
+export const ProcessStepList = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return ({
     '.__heading': {
       fontSize: token.fontSizeHeading5,

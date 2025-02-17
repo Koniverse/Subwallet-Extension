@@ -12,9 +12,9 @@ import { TransactionInfoBlockProps } from './types';
 type Props = TransactionInfoBlockProps;
 
 const Component: FC<Props> = (props: Props) => {
-  const { className, progressData } = props;
+  const { className, processData } = props;
 
-  if (progressData.type === ProcessType.SWAP) {
+  if (processData.type === ProcessType.SWAP) {
     return (
       <Swap
         {...props}
@@ -22,7 +22,7 @@ const Component: FC<Props> = (props: Props) => {
     );
   }
 
-  if (progressData.type === ProcessType.EARNING) {
+  if (processData.type === ProcessType.EARNING) {
     return (
       <Earn
         {...props}

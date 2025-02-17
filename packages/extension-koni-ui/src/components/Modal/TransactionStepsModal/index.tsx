@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ProcessType, StepStatus } from '@subwallet/extension-base/types';
-import { ProgressStepItem, ProgressStepItemType } from '@subwallet/extension-koni-ui/components';
+import { ProcessStepItem, ProcessStepItemType } from '@subwallet/extension-koni-ui/components';
 import { TRANSACTION_STEPS_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Button, SwModal } from '@subwallet/react-ui';
@@ -57,7 +57,7 @@ const Component: FC<Props> = (props: Props) => {
         status: StepStatus.QUEUED,
         isLastItem: true
       }
-    ] as ProgressStepItemType[];
+    ] as ProcessStepItemType[];
   }, []);
 
   return (
@@ -79,9 +79,9 @@ const Component: FC<Props> = (props: Props) => {
       <div className='__list-container'>
         {
           items.map((item) => (
-            <ProgressStepItem
+            <ProcessStepItem
               {...item}
-              className={'__progress-step-item'}
+              className={'__process-step-item'}
               key={item.index}
             />
           ))
@@ -111,7 +111,7 @@ const TransactionStepsModal = styled(Component)<Props>(({ theme: { token } }: Pr
       paddingRight: token.padding
     },
 
-    '.__progress-step-item': {
+    '.__process-step-item': {
       '.__line': {
         marginTop: 4,
         marginBottom: 4
