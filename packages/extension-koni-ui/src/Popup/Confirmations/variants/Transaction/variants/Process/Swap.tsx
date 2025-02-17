@@ -7,7 +7,7 @@ import { SwapBaseTxData } from '@subwallet/extension-base/types/swap';
 import { AlertBox, MetaInfo } from '@subwallet/extension-koni-ui/components';
 import { SwapRoute, SwapTransactionBlock } from '@subwallet/extension-koni-ui/components/Swap';
 import { BN_TEN, BN_ZERO } from '@subwallet/extension-koni-ui/constants';
-import { useGetAccountByAddress, useGetChainPrefixBySlug, useSelector } from '@subwallet/extension-koni-ui/hooks';
+import { useGetAccountByAddress, useGetChainPrefixBySlug, useGetTransactionProcessSteps, useSelector } from '@subwallet/extension-koni-ui/hooks';
 import { Number } from '@subwallet/react-ui';
 import BigN from 'bignumber.js';
 import CN from 'classnames';
@@ -82,6 +82,12 @@ const Component: React.FC<Props> = (props: Props) => {
     return Math.ceil((data.quote.estimatedArrivalTime || 0) / 60);
   }, [data.quote.estimatedArrivalTime]);
 
+  const getTransactionProcessSteps = useGetTransactionProcessSteps();
+
+  const stepItems = useMemo(() => {
+    return getTransactionProcessSteps(process.steps, process.combineInfo, false);
+  }, [getTransactionProcessSteps, process.combineInfo, process.steps]);
+
   useEffect(() => {
     let timer: NodeJS.Timer;
 
@@ -136,6 +142,12 @@ const Component: React.FC<Props> = (props: Props) => {
         >
         </MetaInfo.Default>
         <SwapRoute swapRoute={data.quote.route} />
+
+        <MetaInfo.TransactionProcess
+          items={stepItems}
+          type={process.type}
+        />
+
         {!showQuoteExpired && getWaitingTime > 0 && <AlertBox
           className={'__swap-arrival-time'}
           description={t(`Swapping via ${data.provider.name} can take up to ${getWaitingTime} minutes. Make sure you review all information carefully before submitting.`)}

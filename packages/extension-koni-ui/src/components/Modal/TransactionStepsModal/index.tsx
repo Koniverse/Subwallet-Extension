@@ -1,7 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { ProcessType, StepStatus } from '@subwallet/extension-base/types';
+import { ProcessType } from '@subwallet/extension-base/types';
 import { ProcessStepItem, ProcessStepItemType } from '@subwallet/extension-koni-ui/components';
 import { TRANSACTION_STEPS_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
@@ -10,55 +10,28 @@ import React, { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
-type Props = ThemeProps & {
+export interface TransactionStepsModalProps {
   type: ProcessType;
-  onCancel: () => void;
+  items: ProcessStepItemType[]
+}
+
+type Props = ThemeProps & TransactionStepsModalProps & {
+  onCancel: VoidFunction;
 };
 
 const modalId = TRANSACTION_STEPS_MODAL;
 
 const Component: FC<Props> = (props: Props) => {
-  const { className, onCancel, type } = props;
+  const { className, items, onCancel, type } = props;
   const { t } = useTranslation();
 
   const modalTitle = useMemo(() => {
     if (type === ProcessType.SWAP) {
-      return t('Swap progress');
+      return t('Swap route');
     }
 
-    if (type === ProcessType.EARNING) {
-      return t('Stake progress');
-    }
-
-    return t('Transaction progress');
+    return t('Process');
   }, [t, type]);
-
-  const items = useMemo(() => {
-    // todo: fill real data later
-    return [
-      {
-        index: 0,
-        text: 'Buy 7000 USDT on Ethereum ',
-        status: StepStatus.COMPLETE
-      },
-      {
-        index: 1,
-        text: 'Swap from 7000 USDT to 679.920,3 ETH',
-        status: StepStatus.PROCESSING
-      },
-      {
-        index: 2,
-        text: 'Receive 679.920,3 ETH on Ethereum ',
-        status: StepStatus.QUEUED
-      },
-      {
-        index: 3,
-        text: 'Receive 679.920,3 ETH on Ethereum ',
-        status: StepStatus.QUEUED,
-        isLastItem: true
-      }
-    ] as ProcessStepItemType[];
-  }, []);
 
   return (
     <SwModal
