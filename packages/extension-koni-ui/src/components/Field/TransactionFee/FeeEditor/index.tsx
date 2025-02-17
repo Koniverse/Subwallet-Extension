@@ -70,13 +70,14 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
   })();
 
   const decimals = _getAssetDecimals(tokenAsset);
-  const nativeTokenDecimals = _getAssetDecimals(nativeAsset);
   // @ts-ignore
   const priceId = _getAssetPriceId(tokenAsset);
   const priceValue = priceMap[priceId] || 0;
   const symbol = _getAssetSymbol(tokenAsset);
   const priceNativeId = _getAssetPriceId(nativeAsset);
   const priceNativeValue = priceMap[priceNativeId] || 0;
+  const nativeTokenSymbol = _getAssetSymbol(nativeAsset);
+  const nativeTokenDecimals = _getAssetDecimals(nativeAsset);
 
   const feeValue = useMemo(() => {
     return BN_ZERO;
@@ -124,11 +125,13 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
     });
   }, [decimals, feeValue, isLoading, onClickEdit, renderFieldNode, symbol, feePriceValue]);
 
-  const isEditButton = useMemo(() => {
-    const isXcm = chainValue && destChainValue && chainValue !== destChainValue;
+  const isXcm = useMemo(() => {
+    return chainValue && destChainValue && chainValue !== destChainValue;
+  }, [chainValue, destChainValue]);
 
+  const isEditButton = useMemo(() => {
     return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm')) && !isXcm;
-  }, [chainValue, destChainValue, feeType]);
+  }, [isXcm, chainValue, feeType]);
 
   const rateValue = useMemo(() => {
     const selectedToken = listTokensCanPayFee.find((item) => item.slug === tokenPayFeeSlug);
@@ -139,6 +142,8 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
   const convertedEstimatedFee = useMemo(() => {
     return new BigN(estimateFee).multipliedBy(rateValue);
   }, [estimateFee, rateValue]);
+
+  const isNativeTokenValue = !!(!isEditButton && isXcm);
 
   return (
     <>
@@ -152,9 +157,9 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
 
               <Number
                 className={'__fee-value'}
-                decimal={decimals}
-                suffix={symbol}
-                value={convertedEstimatedFee}
+                decimal={isNativeTokenValue ? nativeTokenDecimals : decimals}
+                suffix={isNativeTokenValue ? nativeTokenSymbol : symbol}
+                value={isNativeTokenValue ? estimateFee : convertedEstimatedFee}
               />
             </div>
             {feeType !== 'ton' && (
