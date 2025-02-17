@@ -10,7 +10,6 @@ import { getDefaultTransferProcess, getSnowbridgeTransferProcessFromEvm, Request
 import { ServiceStatus, StoppableServiceInterface } from '@subwallet/extension-base/services/base/types';
 import { _getChainNativeTokenSlug, _isPureEvmChain } from '@subwallet/extension-base/services/chain-service/utils';
 import { EventItem, EventType } from '@subwallet/extension-base/services/event-service/types';
-import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import DetectAccountBalanceStore from '@subwallet/extension-base/stores/DetectAccountBalance';
 import { BalanceItem, BalanceJson } from '@subwallet/extension-base/types';
 import { CommonOptimalPath } from '@subwallet/extension-base/types/service-base';
@@ -322,15 +321,12 @@ export class BalanceService implements StoppableServiceInterface {
     return await this.state.dbService.stores.balance.getBalanceMapByAddresses(address);
   }
 
-  public async getTokensHasBalance (proxyId: string, chain: string, tokenSlug?: string): Promise<Record<string, TokenHasBalanceInfo>> {
+  public async getTokensHasBalance (proxyId: string, chain: string, tokenSlug?: string): Promise<Record<string, BalanceItem>> {
     const balanceItems = await this.state.dbService.stores.balance.getBalanceHasAmount(proxyId, chain);
-    const tokenHasBalanceInfoMap: Record<string, TokenHasBalanceInfo> = {};
+    const tokenHasBalanceInfoMap: Record<string, BalanceItem> = {};
 
     balanceItems.forEach((balanceItem) => {
-      tokenHasBalanceInfoMap[balanceItem.tokenSlug] = {
-        slug: balanceItem.tokenSlug,
-        free: balanceItem.free
-      } as TokenHasBalanceInfo;
+      tokenHasBalanceInfoMap[balanceItem.tokenSlug] = balanceItem;
     });
 
     if (tokenSlug) {

@@ -16,7 +16,7 @@ import styled from 'styled-components';
 type Props = ThemeProps & {
   slug: string,
   amountToPay: string | number | BigN,
-  rate: number,
+  rate: string,
   selected?: boolean,
   onSelect?: (slug: string) => void,
   balance: string,
@@ -44,7 +44,7 @@ const Component: React.FC<Props> = (props: Props) => {
       return undefined;
     }
 
-    return new BigN(amountToPay).div(rate);
+    return new BigN(amountToPay).multipliedBy(rate);
   }, [amountToPay, feeAssetInfo, priceMap, rate]);
 
   const isDisableItem = useMemo(() => {

@@ -45,7 +45,7 @@ import { AppBannerData, AppConfirmationData, AppPopupData } from '@subwallet/ext
 import { EXTENSION_REQUEST_URL } from '@subwallet/extension-base/services/request-service/constants';
 import { AuthUrls } from '@subwallet/extension-base/services/request-service/types';
 import { DEFAULT_AUTO_LOCK_TIME } from '@subwallet/extension-base/services/setting-service/constants';
-import { checkLiquidityForPath, estimateTokensForPath, getReserveForPath } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
+import { checkLiquidityForPath, estimateTokensForPath, getReserveForPath, getReserveForPool } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
 import { SWTransaction, SWTransactionResponse, SWTransactionResult, TransactionEmitter, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
 import { isProposalExpired, isSupportWalletConnectChain, isSupportWalletConnectNamespace } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
 import { ResultApproveWalletConnectSession, WalletConnectNotSupportRequest, WalletConnectSessionRequest } from '@subwallet/extension-base/services/wallet-connect-service/types';
@@ -1626,7 +1626,7 @@ export default class KoniExtension {
 
     const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalance(proxyId, chain);
     const tokensHasBalanceSlug = Object.keys(tokensHasBalanceInfoMap);
-    const tokensHasBalanceInfo = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.assetType !== _AssetType.NATIVE && token.metadata && token.metadata.multilocation);
+    const tokenInfos = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.assetType !== _AssetType.NATIVE && token.metadata && token.metadata.multilocation);
 
     const nativeTokenInfo = chainService.getNativeTokenInfo(chain);
 
@@ -1634,34 +1634,38 @@ export default class KoniExtension {
       return [];
     }
 
-    const nativeMultiLocation = nativeTokenInfo.metadata.multilocation;
+    const nativeTokenBalanceInfo = {
+      slug: nativeTokenInfo.slug,
+      free: tokensHasBalanceInfoMap[nativeTokenInfo.slug].free || '0',
+      rate: '1'
+    } as TokenHasBalanceInfo;
 
-    const tokensCanPayFeeSlug: string[] = [nativeTokenInfo.slug];
+    const tokensCanPayFee: TokenHasBalanceInfo[] = [nativeTokenBalanceInfo];
 
-    await Promise.all(tokensHasBalanceInfo.map(async (tokenInfo) => {
+    await Promise.all(tokenInfos.map(async (tokenInfo) => {
       const tokenSlug = tokenInfo.slug;
-      // @ts-ignore
-      const tokenMultiLocation = tokenInfo.metadata.multilocation;
+      const reserve = await getReserveForPool(substrateApi.api, nativeTokenInfo, tokenInfo);
+      const rate = new BigN(reserve[1]).div(reserve[0]).toString()
+      const tokenCanPayFee = {
+        slug: tokenSlug,
+        free: tokensHasBalanceInfoMap[tokenSlug].free,
+        rate
+      };
 
-      const _poolInfo = await substrateApi.api.query.assetConversion.pools([nativeMultiLocation, tokenMultiLocation]);
-      const poolInfo = _poolInfo.toPrimitive() as { lpToken: string} || null;
+      if (feeAmount === undefined) {
+        tokensCanPayFee.push(tokenCanPayFee);
+      } else {
+        const reserves = await getReserveForPath(substrateApi.api, [nativeTokenInfo, tokenInfo]);
+        const amounts = estimateTokensForPath(feeAmount, reserves);
+        const liquidityError = checkLiquidityForPath(amounts, reserves);
 
-      if (poolInfo && poolInfo.lpToken !== undefined) {
-        if (feeAmount === undefined) {
-          tokensCanPayFeeSlug.push(tokenSlug);
-        } else {
-          const reserves = await getReserveForPath(substrateApi.api, [nativeTokenInfo, tokenInfo]);
-          const amounts = estimateTokensForPath(feeAmount, reserves);
-          const liquidityError = checkLiquidityForPath(amounts, reserves);
-
-          if (!liquidityError) {
-            tokensCanPayFeeSlug.push(tokenSlug);
-          }
+        if (!liquidityError) {
+          tokensCanPayFee.push(tokenCanPayFee);
         }
       }
     }));
 
-    return tokensCanPayFeeSlug.map((slug) => tokensHasBalanceInfoMap[slug]);
+    return tokensCanPayFee;
   }
 
   private async getAmountForPair (request: RequestGetAmountForPair) {
