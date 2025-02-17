@@ -230,8 +230,8 @@ export default class TaoNativeStakingPoolHandler extends BaseParaStakingPoolHand
           chain: chainInfo.slug,
           validatorAddress: delegate.owner,
           activeStake: activeStake,
-          validatorMinStake: minDelegatorStake,
-          validatorIdentity: delegate.identity
+          validatorMinStake: minDelegatorStake
+          // validatorIdentity: delegate.identity
         });
       }
     }
