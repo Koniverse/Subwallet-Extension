@@ -55,7 +55,7 @@ import { RequestClaimBridge } from '@subwallet/extension-base/types/bridge';
 import { GetNotificationParams, RequestIsClaimedPolygonBridge, RequestSwitchStatusParams } from '@subwallet/extension-base/types/notification';
 import { CommonOptimalPath } from '@subwallet/extension-base/types/service-base';
 import { SwapPair, SwapQuoteResponse, SwapRequest, SwapRequestResult, SwapSubmitParams, ValidateSwapProcessParams } from '@subwallet/extension-base/types/swap';
-import { _analyzeAddress, BN_ZERO, combineAllAccountProxy, createTransactionFromRLP, getAccountSignMode, isSameAddress, MODULE_SUPPORT, reformatAddress, signatureToHex, toBNString, Transaction as QrTransaction, transformAccounts, transformAddresses, uniqueStringArray, wait } from '@subwallet/extension-base/utils';
+import { _analyzeAddress, BN_ZERO, combineAllAccountProxy, createTransactionFromRLP, getAccountSignMode, isSameAddress, MODULE_SUPPORT, reformatAddress, signatureToHex, toBNString, Transaction as QrTransaction, transformAccounts, transformAddresses, uniqueStringArray } from '@subwallet/extension-base/utils';
 import { parseContractInput, parseEvmRlp } from '@subwallet/extension-base/utils/eth/parseTransaction';
 import { MetadataDef } from '@subwallet/extension-inject/types';
 import { getKeypairTypeByAddress, isAddress, isSubstrateAddress, isTonAddress } from '@subwallet/keyring';
@@ -74,7 +74,7 @@ import { TransactionConfig } from 'web3-core';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { TypeRegistry } from '@polkadot/types';
 import { AnyJson, Registry, SignerPayloadJSON, SignerPayloadRaw } from '@polkadot/types/types';
-import { assert, hexStripPrefix, hexToU8a, isAscii, isHex, u8aToHex } from '@polkadot/util';
+import { assert, hexStripPrefix, hexToU8a, isAscii, isHex, noop, u8aToHex } from '@polkadot/util';
 import { decodeAddress, isEthereumAddress } from '@polkadot/util-crypto';
 
 import { getSuitableRegistry, RegistrySource, setupApiRegistry, setupDappRegistry, setupDatabaseRegistry } from '../utils';
@@ -4154,9 +4154,22 @@ export default class KoniExtension {
 
         let stepNums: number;
         let submitData: SubmitFunction;
+        let waitXcmData: { chain: string, token: string, targetAmount: string, nextTxType: ExtrinsicType } | undefined;
 
         if (type === ProcessType.EARNING) {
           const data = requestData as RequestYieldStepSubmit;
+
+          const poolHandler = this.#koniState.earningService.getPoolHandler(data.data.slug);
+
+          if (poolHandler) {
+            waitXcmData = {
+              targetAmount: data.data.amount,
+              chain: poolHandler.chain,
+              token: poolHandler.metadataInfo.inputAsset,
+              // TODO: Change this depends on pool
+              nextTxType: ExtrinsicType.JOIN_YIELD_POOL
+            };
+          }
 
           submitData = async (step: number, callback?: (rs: SWTransactionResponse) => void): Promise<SWTransactionResponse> => {
             const isPassConfirmation = !callback;
@@ -4179,6 +4192,15 @@ export default class KoniExtension {
           const data = requestData as SwapSubmitParams;
 
           stepNums = data.process.steps.length;
+
+          const inputAsset = this.#koniState.chainService.getAssetBySlug(data.quote.pair.from);
+
+          waitXcmData = {
+            targetAmount: data.quote.fromAmount,
+            chain: inputAsset.originChain,
+            token: inputAsset.slug,
+            nextTxType: ExtrinsicType.SWAP
+          };
 
           submitData = async (step: number, callback?: (rs: SWTransactionResponse) => void): Promise<SWTransactionResponse> => {
             const isLastStep = step === stepNums - 1;
@@ -4237,8 +4259,28 @@ export default class KoniExtension {
             }
 
             if (rs.extrinsicType === ExtrinsicType.TRANSFER_XCM) {
-              // Wait for 30s to make sure asset is transferred to the destination chain
-              await wait(30 * 1000);
+              await new Promise<void>((resolve) => {
+                setTimeout(resolve, 60 * 1000);
+
+                if (waitXcmData) {
+                  let unsub = noop;
+
+                  const onRs = (rs: AmountData) => {
+                    if ((BigN(rs.value)).gte(BigN(waitXcmData?.targetAmount || '0'))) {
+                      unsub();
+
+                      resolve();
+                    }
+                  };
+
+                  this.#koniState.balanceService.subscribeTransferableBalance(address, waitXcmData.chain, waitXcmData.token, waitXcmData.nextTxType, onRs)
+                    .then(([_unsub, rs]) => {
+                      unsub = _unsub;
+                      onRs(rs);
+                    })
+                    .catch(console.error);
+                }
+              });
             }
 
             return loopSubmit(submitFunc, step + 1);
