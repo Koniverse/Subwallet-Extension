@@ -4,7 +4,7 @@
 import { _getAssetDecimals, _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
 import { ProcessTransactionData, SubmitYieldStepData, SummaryEarningProcessData } from '@subwallet/extension-base/types';
 import { CommonTransactionInfo, MetaInfo } from '@subwallet/extension-koni-ui/components';
-import { useSelector } from '@subwallet/extension-koni-ui/hooks';
+import { useGetTransactionProcessSteps, useSelector } from '@subwallet/extension-koni-ui/hooks';
 import CN from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +18,8 @@ const Component: React.FC<Props> = (props: Props) => {
   const { className, transaction } = props;
   const { t } = useTranslation();
 
-  const txParams = useMemo(() => ((transaction.process as ProcessTransactionData).combineInfo as SummaryEarningProcessData).data as unknown as SubmitYieldStepData, [transaction.process]);
+  const process = useMemo(() => transaction.process as ProcessTransactionData, [transaction.process]);
+  const txParams = useMemo(() => (process.combineInfo as SummaryEarningProcessData).data as unknown as SubmitYieldStepData, [process.combineInfo]);
 
   const { assetRegistry: tokenInfoMap } = useSelector((state) => state.assetRegistry);
 
@@ -57,6 +58,12 @@ const Component: React.FC<Props> = (props: Props) => {
     return Math.floor(parseInt(txParams.amount) / txParams.exchangeRate);
   }, [txParams.amount, txParams.exchangeRate]);
 
+  const getTransactionProcessSteps = useGetTransactionProcessSteps();
+
+  const stepItems = useMemo(() => {
+    return getTransactionProcessSteps(process.steps, process.combineInfo, false);
+  }, [getTransactionProcessSteps, process.steps, process.combineInfo]);
+
   return (
     <div className={CN(className)}>
       <CommonTransactionInfo
@@ -88,6 +95,11 @@ const Component: React.FC<Props> = (props: Props) => {
           label={t('Estimated fee')}
           suffix={feeTokenSymbol}
           value={transaction.estimateFee?.value || 0}
+        />
+
+        <MetaInfo.TransactionProcess
+          items={stepItems}
+          type={process.type}
         />
       </MetaInfo>
     </div>
