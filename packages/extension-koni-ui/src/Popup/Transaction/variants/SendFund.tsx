@@ -457,6 +457,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const handleBasicSubmit = useCallback((values: TransferParams, options: TransferOptions): Promise<SWTransactionResponse> => {
     const { asset, chain, destChain, from, to, value } = values;
     let sendPromise: Promise<SWTransactionResponse>;
+    const nonNativeTokenPayFeeSlug = currentNonNativeTokenPayFee !== nativeTokenSlug ? currentNonNativeTokenPayFee : undefined;
 
     if (chain === destChain) {
       // Transfer token or send fund
@@ -470,7 +471,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
+        nonNativeTokenPayFeeSlug: nonNativeTokenPayFeeSlug
       });
     } else {
       // Make cross chain transfer
@@ -485,7 +486,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
         transferBounceable: options.isTransferBounceable,
         feeOption: selectedTransactionFee?.feeOption,
         feeCustom: selectedTransactionFee?.feeCustom,
-        nonNativeTokenPayFeeSlug: currentNonNativeTokenPayFee
+        nonNativeTokenPayFeeSlug: nonNativeTokenPayFeeSlug
       });
     }
 
