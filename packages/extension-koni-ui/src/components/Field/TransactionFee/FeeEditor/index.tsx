@@ -128,6 +128,16 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
     return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm')) && !isXcm;
   }, [chainValue, destChainValue, feeType]);
 
+  const rateValue = useMemo(() => {
+    const selectedToken = listTokensCanPayFee.find((item) => item.slug === tokenSlug);
+
+    return selectedToken?.rate || 0;
+  }, [listTokensCanPayFee, tokenSlug]);
+
+  const convertedEstimatedFee = useMemo(() => {
+    return new BigN(estimateFee).multipliedBy(rateValue);
+  }, [estimateFee, rateValue]);
+
   return (
     <>
       {
@@ -140,9 +150,9 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
 
               <Number
                 className={'__fee-value'}
-                decimal={nativeTokenDecimals}
+                decimal={decimals}
                 suffix={symbol}
-                value={estimateFee}
+                value={convertedEstimatedFee}
               />
             </div>
             {feeType !== 'ton' && (
