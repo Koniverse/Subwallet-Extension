@@ -1043,6 +1043,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           feeType={transferInfo?.feeType}
           listTokensCanPayFee={listTokensCanPayFee}
           loading={loading}
+          nativeTokenSlug={nativeTokenSlug}
           onSelect={setSelectedTransactionFee}
           onSetTokenPayFee={onSetTokenPayFee}
           selectedFeeOption={selectedTransactionFee}

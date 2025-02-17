@@ -45,13 +45,14 @@ type Props = ThemeProps & {
   currentTokenPayFee?: string;
   chainValue?: string;
   destChainValue?: string;
-  selectedFeeOption?: TransactionFee
+  selectedFeeOption?: TransactionFee;
+  nativeTokenSlug: string;
 };
 
 // todo: will update dynamic later
 const modalId = 'FeeEditorModalId';
 
-const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, estimateFee, feeOptionsInfo, feeType, isLoading = false, listTokensCanPayFee, loading, onSelect, onSetTokenPayFee, renderFieldNode, selectedFeeOption, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, estimateFee, feeOptionsInfo, feeType, isLoading = false, listTokensCanPayFee, loading, nativeTokenSlug, onSelect, onSetTokenPayFee, renderFieldNode, selectedFeeOption, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal } = useContext(ModalContext);
   const assetRegistry = useSelector((root) => root.assetRegistry.assetRegistry);
@@ -62,11 +63,18 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
     return assetRegistry[tokenSlug] || undefined;
   })();
 
+  const nativeAsset = (() => {
+    return assetRegistry[nativeTokenSlug] || undefined;
+  })();
+
   const decimals = _getAssetDecimals(tokenAsset);
+  const nativeTokenDecimals = _getAssetDecimals(nativeAsset);
   // @ts-ignore
   const priceId = _getAssetPriceId(tokenAsset);
   const priceValue = priceMap[priceId] || 0;
   const symbol = _getAssetSymbol(tokenAsset);
+  const priceNativeId = _getAssetPriceId(nativeAsset);
+  const priceNativeValue = priceMap[priceNativeId] || 0;
 
   const feeValue = useMemo(() => {
     return BN_ZERO;
@@ -78,11 +86,10 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
 
   const convertedFeeValueToUSD = useMemo(() => {
     return new BigN(estimateFee)
-      .multipliedBy(priceValue)
-      .dividedBy(BN_TEN.pow(decimals || 0))
+      .multipliedBy(priceNativeValue)
+      .dividedBy(BN_TEN.pow(nativeTokenDecimals || 0))
       .toNumber();
-  }, [decimals, estimateFee, priceValue]);
-
+  }, [estimateFee, nativeTokenDecimals, priceNativeValue]);
   const onClickEdit = useCallback(() => {
     setTimeout(() => {
       if (chainValue && ASSET_HUB_CHAIN_SLUGS.includes(chainValue)) {
@@ -118,8 +125,8 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
   const isEditButton = useMemo(() => {
     const isXcm = chainValue && destChainValue && chainValue !== destChainValue;
 
-    return !!(chainValue && listTokensCanPayFee.length > 0 && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm')) && !isXcm;
-  }, [chainValue, destChainValue, feeType, listTokensCanPayFee?.length]);
+    return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm')) && !isXcm;
+  }, [chainValue, destChainValue, feeType]);
 
   return (
     <>
@@ -128,12 +135,12 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
           <div className={CN(className, '__estimate-fee-wrapper')}>
             <div className='__field-left-part'>
               <div className='__field-label'>
-                {t('Estimate fee')}:
+                {t('Estimated fee')}:
               </div>
 
               <Number
                 className={'__fee-value'}
-                decimal={decimals}
+                decimal={nativeTokenDecimals}
                 suffix={symbol}
                 value={estimateFee}
               />
@@ -189,6 +196,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
         estimateFee={estimateFee}
         items={listTokensCanPayFee}
         modalId={CHOOSE_FEE_TOKEN_MODAL}
+        nativeTokenDecimals={nativeTokenDecimals}
         onSelectItem={onSetTokenPayFee}
         selectedItem={currentTokenPayFee || tokenSlug}
       />

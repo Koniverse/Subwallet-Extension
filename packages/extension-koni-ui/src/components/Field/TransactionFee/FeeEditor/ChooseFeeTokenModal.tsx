@@ -20,6 +20,7 @@ type Props = ThemeProps & {
   items: TokenHasBalanceInfo[] | undefined,
   onSelectItem: (slug: string) => void,
   selectedItem?: string,
+  nativeTokenDecimals: number
 }
 const numberMetadata = { maxNumberFormat: 8 };
 
@@ -41,7 +42,7 @@ const Component: React.FC<Props> = (props: Props) => {
         destroyOnClose={true}
         id={modalId}
         onCancel={onCancel}
-        title={'Choose fee token'}
+        title={'Select token to pay fee'}
       >
         <div className={'__choose-fee-wrapper'}>
           <div className={'__estimate-fee'}>
@@ -58,7 +59,7 @@ const Component: React.FC<Props> = (props: Props) => {
               suffix={(!currencyData.isPrefix && currencyData.symbol) || ''}
               value={convertedFeeValueToUSD}
             />
-            <span className={'__pay-with'}>Pay with token:</span>
+            <span className={'__pay-with'}>Pay with:</span>
           </div>
           {items && items.map((item, index) => (
             <ChooseFeeItem

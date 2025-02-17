@@ -332,7 +332,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
           ),
           onClick: onCancelModal
         }}
-        title={t('Choose fee')}
+        title={t('Edit fee')}
       >
         {feeType === 'evm' && (
           <div className={'__switcher-box'}>
@@ -406,13 +406,6 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
           )
         }
       </SwModal>
-      {/* <ChooseFeeTokenModal */}
-      {/*  estimatedFee={esti} */}
-      {/*  items={listTokensCanPayFee} */}
-      {/*  modalId={CHOOSE_FEE_TOKEN_MODAL} */}
-      {/*  onSelectItem={onSetTokenPayFee} */}
-      {/*  selectedItem={currentTokenPayFee || tokenSlug} */}
-      {/* /> */}
     </>
   );
 };

@@ -27,7 +27,6 @@ const numberMetadata = { maxNumberFormat: 8 };
 const Component: React.FC<Props> = (props: Props) => {
   const { amountToPay, balance, className, onSelect, rate, selected, slug } = props;
   const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
-  const priceMap = useSelector((state) => state.price.priceMap);
   const { t } = useTranslation();
   const _onSelect = useCallback(() => {
     onSelect?.(slug);
@@ -40,12 +39,8 @@ const Component: React.FC<Props> = (props: Props) => {
   const decimal = _getAssetDecimals(feeAssetInfo);
 
   const convertedAmountToPay = useMemo(() => {
-    if (!priceMap[_getAssetPriceId(feeAssetInfo)] || !priceMap[_getAssetPriceId(feeAssetInfo)]) {
-      return undefined;
-    }
-
     return new BigN(amountToPay).multipliedBy(rate);
-  }, [amountToPay, feeAssetInfo, priceMap, rate]);
+  }, [amountToPay, rate]);
 
   const isDisableItem = useMemo(() => {
     if (!convertedAmountToPay) {
