@@ -9,7 +9,7 @@ import AccountExportPasswordModal from '@subwallet/extension-web-ui/components/M
 import { EXPORT_ACCOUNTS_PASSWORD_MODAL, SELECT_ACCOUNT_MODAL } from '@subwallet/extension-web-ui/constants';
 import { useFilterModal, useGoBackSelectAccount, useSelectAccount } from '@subwallet/extension-web-ui/hooks';
 import { AccountSignMode, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { isAccountAll, searchAccountProxyFunction } from '@subwallet/extension-web-ui/utils';
+import { isAccountAll, searchAccountProxyFunction, shouldShowAllAccount } from '@subwallet/extension-web-ui/utils';
 import { Button, ButtonProps, Icon, InputRef, ModalContext, SwList, Tooltip } from '@subwallet/react-ui';
 import { SwListSectionRef } from '@subwallet/react-ui/es/sw-list';
 import CN from 'classnames';
@@ -75,6 +75,10 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
   }, [items]);
   const { changeAccounts, onChangeSelectedAccounts } = useSelectAccount(getAllIdProxy, id, onChange, isSingleSelect);
 
+  const showAllAccount = useMemo(() => {
+    return shouldShowAllAccount(items);
+  }, [items]);
+
   const { filterSelectionMap, onApplyFilter, onChangeFilterOption, onCloseFilterModal, onResetFilter, selectedFilters } = useFilterModal(FILTER_MODAL_ID);
 
   const filterFunction = useMemo<(item: AccountProxy) => boolean>(() => {
@@ -126,15 +130,19 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
     const currentAccountIsAll = isAccountAll(item.id);
 
     if (currentAccountIsAll) {
-      return (
-        <AccountProxySelectorAllItem
-          className='all-account-selection'
-          isSelected={selected}
-          key={item.id}
-          onClick={onAccountSelect(ALL_ACCOUNT_KEY)}
-          showUnSelectedIcon
-        />
-      );
+      if (showAllAccount) {
+        return (
+          <AccountProxySelectorAllItem
+            className='all-account-selection'
+            isSelected={selected}
+            key={item.id}
+            onClick={onAccountSelect(ALL_ACCOUNT_KEY)}
+            showUnSelectedIcon
+          />
+        );
+      } else {
+        return null;
+      }
     }
 
     return (

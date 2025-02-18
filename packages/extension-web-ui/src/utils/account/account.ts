@@ -217,3 +217,8 @@ export const isAddressAllowedWithAuthType = (address: string, authAccountTypes?:
 
   return false;
 };
+
+export const shouldShowAllAccount = (list: AccountProxy[], hasSearchValue = false) => {
+  if (hasSearchValue) return false;
+  return list.filter(({ id }) => !isAccountAll(id)).length > 1;
+};

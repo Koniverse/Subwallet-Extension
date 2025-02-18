@@ -16,7 +16,7 @@ import { saveCurrentAccountAddress } from '@subwallet/extension-web-ui/messaging
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { Theme } from '@subwallet/extension-web-ui/themes';
 import { AccountDetailParam, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { isAccountAll } from '@subwallet/extension-web-ui/utils';
+import { isAccountAll, shouldShowAllAccount } from '@subwallet/extension-web-ui/utils';
 import { Icon, ModalContext, SwList, Tooltip } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { Circle, Export } from 'phosphor-react';
@@ -199,7 +199,7 @@ const Component: React.FC<Props> = ({ className }: Props) => {
   const hasSearchValue = !!searchValue;
 
   const showAllAccount = useMemo(() => {
-    return !hasSearchValue && accountProxies.filter(({ id }) => !isAccountAll(id)).length > 1;
+    return shouldShowAllAccount(accountProxies, hasSearchValue)
   }, [hasSearchValue, accountProxies]);
 
   const onSelect = useCallback((accountProxy: AccountProxy) => {
