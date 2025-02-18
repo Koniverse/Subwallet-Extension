@@ -158,7 +158,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const { chainInfoMap, chainStateMap, chainStatusMap, ledgerGenericAllowNetworks } = useSelector((root) => root.chainStore);
   const { assetRegistry, xcmRefMap } = useSelector((root) => root.assetRegistry);
   const { accounts } = useSelector((state: RootState) => state.accountState);
-  const { accountProxies, currentAccountProxy } = useSelector((state: RootState) => state.accountState);
+  const { accountProxies } = useSelector((state: RootState) => state.accountState);
   const [autoFormatValue] = useLocalStorage(ADDRESS_INPUT_AUTO_FORMAT_VALUE, false);
   const [listTokensCanPayFee, setListTokensCanPayFee] = useState<TokenHasBalanceInfo[]>([]);
 
@@ -894,7 +894,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
       try {
         const _response = await getTokensCanPayFee({
           chain: chainValue,
-          proxyId: currentAccountProxy?.id || ''
+          address: fromValue
         });
 
         const response = _response.filter((item) => item !== null && item !== undefined);
@@ -914,7 +914,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     return () => {
       cancel = true;
     };
-  }, [chainValue, currentAccountProxy?.id, fromValue, nativeTokenBalance, nativeTokenSlug]);
+  }, [chainValue, fromValue, nativeTokenBalance, nativeTokenSlug]);
 
   useRestoreTransaction(form);
 

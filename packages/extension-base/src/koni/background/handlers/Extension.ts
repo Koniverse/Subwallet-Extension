@@ -1425,8 +1425,7 @@ export default class KoniExtension {
       // Check enough free local to pay fee local
       if (nonNativeTokenPayFeeSlug) {
         const nonNativeFee = BigInt(inputTransaction.estimateFee?.value || '0'); // todo: estimateFee should be must-have, need to refactor interface
-        const proxyId = this.#koniState.keyringService.context.currentAccount.proxyId;
-        const nonNativeTokenPayFeeInfo = await this.#koniState.balanceService.getTokensHasBalance(proxyId, chain, nonNativeTokenPayFeeSlug);
+        const nonNativeTokenPayFeeInfo = await this.#koniState.balanceService.getTokensHasBalance(reformatAddress(from), chain, nonNativeTokenPayFeeSlug);
         const nonNativeTokenPayFeeBalance = BigInt(nonNativeTokenPayFeeInfo[nonNativeTokenPayFeeSlug].free);
 
         if (nonNativeFee > nonNativeTokenPayFeeBalance) {
@@ -1623,12 +1622,13 @@ export default class KoniExtension {
   }
 
   private async getTokensCanPayFee (request: RequestGetTokensCanPayFee): Promise<TokenHasBalanceInfo[]> {
-    const { chain, feeAmount, proxyId } = request;
+    const { address: _address, chain, feeAmount } = request;
     const chainService = this.#koniState.chainService;
     const substrateApi = this.#koniState.getSubstrateApi(chain);
+    const address = reformatAddress(_address);
 
     // ensure nativeTokenInfo and localTokenInfo have multi-location metadata beforehand to improve performance.
-    const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalance(proxyId, chain);
+    const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalance(address, chain);
     const tokensHasBalanceSlug = Object.keys(tokensHasBalanceInfoMap);
     const tokenInfos = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => (
       token.originChain === chain &&

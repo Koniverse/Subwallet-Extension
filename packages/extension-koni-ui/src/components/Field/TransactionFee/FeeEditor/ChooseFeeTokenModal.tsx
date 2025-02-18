@@ -96,7 +96,7 @@ const Component: React.FC<Props> = (props: Props) => {
           </div>
           {tokensWithFeeInfo && tokensWithFeeInfo.map((item, index) => (
             <ChooseFeeItem
-              amountToPay={ item.convertedAmountToPay}
+              amountToPay={item.convertedAmountToPay}
               balance={item?.free}
               isDisable={item.isDisableItem}
               key={`${item.slug}-${index}`}
