@@ -1,7 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { _getAssetDecimals, _getAssetPriceId, _getAssetSymbol } from '@subwallet/extension-base/services/chain-service/utils';
+import { _getAssetDecimals, _getAssetPriceId, _getAssetSymbol, _isNativeToken, _isNativeTokenBySlug } from '@subwallet/extension-base/services/chain-service/utils';
 import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { FeeDetail, TransactionFee } from '@subwallet/extension-base/types';
 import { BN_ZERO } from '@subwallet/extension-base/utils';
@@ -148,8 +148,11 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
   }, [listTokensCanPayFee, tokenPayFeeSlug]);
 
   const convertedEstimatedFee = useMemo(() => {
-    return new BigN(estimateFee).multipliedBy(rateValue);
-  }, [estimateFee, rateValue]);
+    const rs = new BigN(estimateFee).multipliedBy(rateValue);
+    const isTransferLocalTokenAndPayThatTokenAsFee = !_isNativeTokenBySlug(tokenSlug) && !_isNativeTokenBySlug(tokenPayFeeSlug) && tokenPayFeeSlug === tokenSlug;
+
+    return isTransferLocalTokenAndPayThatTokenAsFee ? rs.multipliedBy(feePercentageSpecialCase || 100).div(100) : rs;
+  }, [estimateFee, rateValue, tokenSlug, tokenPayFeeSlug, feePercentageSpecialCase]);
 
   const isNativeTokenValue = !!(!isEditButton && isXcm);
 

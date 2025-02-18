@@ -55,7 +55,7 @@ const Component: React.FC<Props> = (props: Props) => {
     const processedItems = items.map((item) => {
       const { free: balance, rate, slug } = item;
       const estimatedFeeValue = slug !== tokenSlug ? estimateFee : estimateFeeSpecial;
-      const convertedAmountToPay = new BigN(estimatedFeeValue).multipliedBy(rate);
+      const convertedAmountToPay = new BigN(estimatedFeeValue).multipliedBy(rate).integerValue(BigN.ROUND_UP);
 
       const isDisableItem = !convertedAmountToPay || convertedAmountToPay.lte(0) || new BigN(balance).lt(convertedAmountToPay);
 

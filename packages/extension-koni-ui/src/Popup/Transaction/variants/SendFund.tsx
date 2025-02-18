@@ -1029,23 +1029,25 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           </Form.Item>
         </Form>
 
-        {!TON_CHAINS.includes(chainValue) && !!toValue && !!transferAmountValue && nativeTokenSlug && (<FeeEditor
-          chainValue={chainValue}
-          currentTokenPayFee={currentNonNativeTokenPayFee}
-          destChainValue={destChainValue}
-          estimateFee={estimatedNativeFee}
-          feeOptionsInfo={transferInfo?.feeOptions}
-          feePercentageSpecialCase={transferInfo?.feePercentageSpecialCase}
-          feeType={transferInfo?.feeType}
-          isLoading={loading || isFetchingInfo}
-          listTokensCanPayFee={listTokensCanPayFee}
-          nativeTokenSlug={nativeTokenSlug}
-          onSelect={setSelectedTransactionFee}
-          onSetTokenPayFee={onSetTokenPayFee}
-          selectedFeeOption={selectedTransactionFee}
-          tokenPayFeeSlug={currentNonNativeTokenPayFee || nativeTokenSlug}
-          tokenSlug={assetValue}
-        />)}
+        {!TON_CHAINS.includes(chainValue) && !!toValue && !!transferAmountValue && nativeTokenSlug && (
+          <FeeEditor
+            chainValue={chainValue}
+            currentTokenPayFee={currentNonNativeTokenPayFee}
+            destChainValue={destChainValue}
+            estimateFee={estimatedNativeFee}
+            feeOptionsInfo={transferInfo?.feeOptions}
+            feePercentageSpecialCase={transferInfo?.feePercentageSpecialCase}
+            feeType={transferInfo?.feeType}
+            isLoading={isFetchingInfo}
+            listTokensCanPayFee={listTokensCanPayFee}
+            nativeTokenSlug={nativeTokenSlug}
+            onSelect={setSelectedTransactionFee}
+            onSetTokenPayFee={onSetTokenPayFee}
+            selectedFeeOption={selectedTransactionFee}
+            tokenPayFeeSlug={currentNonNativeTokenPayFee || nativeTokenSlug}
+            tokenSlug={assetValue}
+          />
+        )}
         {
           chainValue !== destChainValue && (
             <div className={'__warning_message_cross_chain'}>
