@@ -1632,18 +1632,16 @@ export default class KoniExtension {
     const tokensHasBalanceSlug = Object.keys(tokensHasBalanceInfoMap);
     const tokenInfos = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.assetType !== _AssetType.NATIVE && token.metadata && token.metadata.multilocation);
     const nativeTokenInfo = chainService.getNativeTokenInfo(chain);
-
-    if (!nativeTokenInfo.metadata || !nativeTokenInfo.metadata.multilocation) {
-      return [];
-    }
-
     const nativeTokenBalanceInfo = {
       slug: nativeTokenInfo.slug,
       free: tokensHasBalanceInfoMap[nativeTokenInfo.slug]?.free || '0',
       rate: '1'
     } as TokenHasBalanceInfo;
-
     const tokensCanPayFee: TokenHasBalanceInfo[] = [nativeTokenBalanceInfo];
+
+    if (!nativeTokenInfo.metadata || !nativeTokenInfo.metadata.multilocation) {
+      return tokensCanPayFee;
+    }
 
     await Promise.all(tokenInfos.map(async (tokenInfo) => {
       const tokenSlug = tokenInfo.slug;
