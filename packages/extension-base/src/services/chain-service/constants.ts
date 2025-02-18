@@ -103,7 +103,8 @@ export const _STAKING_ERA_LENGTH_MAP: Record<string, number> = { // in hours
   availTuringTest: 24,
   polkadex: 24,
   avail_mainnet: 24,
-  cere: 24
+  cere: 24,
+  analog_timechain: 12
 };
 
 export const _EXPECTED_BLOCK_TIME: Record<string, number> = { // in seconds

@@ -191,6 +191,10 @@ export function calculateChainStakedReturn (inflation: number, totalEraStake: BN
 }
 
 export function calculateChainStakedReturnV2 (chainInfo: _ChainInfo, totalIssuance: string, erasPerDay: number, lastTotalStaked: string, validatorEraReward: BigNumber, inflation: BigNumber, isCompound?: boolean) {
+  if (chainInfo.slug === 'analog_timechain') { // hotfix for analog
+    return 55;
+  }
+
   const DAYS_PER_YEAR = 365;
   const { decimals } = _getChainNativeTokenBasicInfo(chainInfo);
 

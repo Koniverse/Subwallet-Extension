@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 1.3.16
+Build date: Feb 10, 2025.
+
+Features & Update:
+- Add in-app staking for Analog
+
+
+## 1.3.15
+Build date: Feb 06, 2025.
+
+Bug fixed:
+- Fix issue Don't open the extension related to Patch feature (#4002)
+- Fix bug Do not show earning position for Bittensor (#4006)
+
+
 ## 1.3.14
 Build date: Jan 24, 2025.
 

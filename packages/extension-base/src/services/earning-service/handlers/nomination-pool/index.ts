@@ -120,7 +120,7 @@ export default class NominationPoolHandler extends BasePoolHandler {
         substrateApi.api.query.balances.totalIssuance(),
         substrateApi.api.query.auctions?.auctionCounter(),
         substrateApi.api.query.nominationPools?.minJoinBond(),
-        substrateApi.api.query.staking.erasValidatorReward.multi([...Array(supportedDays).keys()].map((i) => i + startEra))
+        substrateApi.api.query.staking.erasValidatorReward.multi([...Array(supportedDays.toString()).keys()].map((i) => i + startEra))
       ]);
 
       const maxPoolMembers = _maxPoolMember ? parseInt(_maxPoolMember.toString()) : undefined;
