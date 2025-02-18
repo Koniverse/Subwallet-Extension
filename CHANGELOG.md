@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 1.3.17
+Build date: Feb 18, 2025.
+
+Features & Update:
+- Show well-known tokens on top (#3920)
+- Unable to load TAO balance (#4032)
+
+Bug fixed:
+- Fixed bug Show incorrect APY for some chains (#4026)
+- Fixed rate limit api key for Bittensor(TAO) (#4029)
+
+
 ## 1.3.16
 Build date: Feb 10, 2025.
 
