@@ -27,13 +27,21 @@ export interface RequestSubmitProcessTransaction {
 }
 
 export enum StepStatus {
+  /* The step is queued and waiting to be processed. */
   QUEUED = 'QUEUED',
+  /* The previous step is complete, and the step is being prepared for submission. */
   PREPARE = 'PREPARE',
+  /* The step is currently being submitted to the chain. */
   SUBMITTING = 'SUBMITTING',
+  /* The step is being processed, having extrinsic hash. */
   PROCESSING = 'PROCESSING',
+  /* The step has been completed successfully. */
   COMPLETE = 'COMPLETE',
+  /* The step has failed. */
   FAILED = 'FAILED',
+  /* The step has been canceled. */
   CANCELLED = 'CANCELLED',
+  /* The step has timed out. */
   TIMEOUT = 'TIMEOUT'
 }
 
