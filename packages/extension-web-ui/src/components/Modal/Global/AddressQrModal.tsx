@@ -205,9 +205,11 @@ const AddressQrModal = styled(Component)<Props>(({ theme: { token } }: Props) =>
       fontWeight: token.fontWeightStrong
     },
 
-    '.ant-sw-header-center-part': {
+    '.ant-sw-header-center-part.ant-sw-header-center-part': {
       position: 'relative',
-      height: 40
+      height: 40,
+      marginRight: 0,
+      marginLeft: 0
     },
 
     '.ant-sw-header-center-part .__change-version-button': {
