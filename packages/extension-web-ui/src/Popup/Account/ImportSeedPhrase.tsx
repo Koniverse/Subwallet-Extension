@@ -3,29 +3,12 @@
 
 import { NotificationType } from '@subwallet/extension-base/background/KoniTypes';
 import { AccountProxyType, ResponseMnemonicValidateV2 } from '@subwallet/extension-base/types';
-import {
-  AccountNameModal,
-  CloseIcon,
-  InstructionContentType,
-  Layout,
-  PageWrapper,
-  PhraseNumberSelector,
-  SeedPhraseInput
-} from '@subwallet/extension-web-ui/components';
+import { AccountNameModal, CloseIcon, InstructionContentType, Layout, PageWrapper, PhraseNumberSelector, SeedPhraseInput } from '@subwallet/extension-web-ui/components';
 import InstructionContainer from '@subwallet/extension-web-ui/components/InstructionContainer';
 import { ACCOUNT_NAME_MODAL, IMPORT_ACCOUNT_MODAL, IMPORT_SEED_MODAL } from '@subwallet/extension-web-ui/constants';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
 import { WalletModalContext } from '@subwallet/extension-web-ui/contexts/WalletModalContextProvider';
-import {
-  useAutoNavigateToCreatePassword,
-  useCompleteCreateAccount,
-  useDefaultNavigate,
-  useFocusFormItem,
-  useGoBackFromCreateAccount,
-  useNotification,
-  useTranslation,
-  useUnlockChecker
-} from '@subwallet/extension-web-ui/hooks';
+import { useAutoNavigateToCreatePassword, useCompleteCreateAccount, useDefaultNavigate, useFocusFormItem, useGoBackFromCreateAccount, useNotification, useTranslation, useUnlockChecker } from '@subwallet/extension-web-ui/hooks';
 import { createAccountSuriV2, validateSeedV2 } from '@subwallet/extension-web-ui/messaging';
 import { FormCallbacks, FormFieldData, FormRule, ThemeProps } from '@subwallet/extension-web-ui/types';
 import { convertFieldToObject, noop, simpleCheckForm } from '@subwallet/extension-web-ui/utils';
