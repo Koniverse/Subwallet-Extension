@@ -6,7 +6,7 @@ import { SwapError } from '@subwallet/extension-base/background/errors/SwapError
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
 import { _getAssetDecimals, _getTokenMinAmount, _isChainEvmCompatible, _isNativeToken } from '@subwallet/extension-base/services/chain-service/utils';
 import { BasicTxErrorType } from '@subwallet/extension-base/types';
-import { AssetHubPreValidationMetadata, ChainflipPreValidationMetadata, HydradxPreValidationMetadata, SimpleSwapValidationMetadata, SwapErrorType } from '@subwallet/extension-base/types/swap';
+import { AssetHubPreValidationMetadata, ChainflipPreValidationMetadata, HydradxPreValidationMetadata, PiperXValidationMetadata, SimpleSwapValidationMetadata, SwapErrorType } from '@subwallet/extension-base/types/swap';
 import { formatNumber } from '@subwallet/extension-base/utils';
 import BigN from 'bignumber.js';
 
@@ -180,6 +180,21 @@ export function _getSimpleSwapEarlyValidationError (error: SwapErrorType, metada
       }
     }
 
+    case SwapErrorType.ASSET_NOT_SUPPORTED:
+      return new SwapError(error, 'This swap pair is not supported');
+    case SwapErrorType.UNKNOWN:
+      return new SwapError(error, `Undefined error. Check your Internet and ${metadata.chain.slug} connection or contact support`);
+    case SwapErrorType.ERROR_FETCHING_QUOTE:
+      return new SwapError(error, 'No swap quote found. Adjust your amount or try again later.');
+    default:
+      return new SwapError(error);
+  }
+}
+
+export function _getPiperXEarlyValidationError (error: SwapErrorType, metadata: PiperXValidationMetadata): SwapError { // todo: support more providers
+  switch (error) {
+    case SwapErrorType.AMOUNT_CANNOT_BE_ZERO:
+      return new SwapError(error, 'Amount too low. Increase your amount above 0 and try again');
     case SwapErrorType.ASSET_NOT_SUPPORTED:
       return new SwapError(error, 'This swap pair is not supported');
     case SwapErrorType.UNKNOWN:

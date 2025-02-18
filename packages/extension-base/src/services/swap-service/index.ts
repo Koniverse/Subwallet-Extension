@@ -18,6 +18,7 @@ import { _SUPPORTED_SWAP_PROVIDERS, OptimalSwapPathParams, QuoteAskResponse, Swa
 import { createPromiseHandler, PromiseHandler } from '@subwallet/extension-base/utils';
 import { BehaviorSubject } from 'rxjs';
 
+import { PiperXSwapHandler } from './handler/piperx';
 import { SimpleSwapHandler } from './handler/simpleswap-handler';
 
 export const _isChainSupportedByProvider = (providerSlug: SwapProviderId, chain: string) => {
@@ -192,6 +193,12 @@ export class SwapService implements ServiceWithProcessInterface, StoppableServic
           break;
         case SwapProviderId.SIMPLE_SWAP:
           this.handlers[providerId] = new SimpleSwapHandler(this.chainService, this.state.balanceService);
+          break;
+        case SwapProviderId.PIPERX_TESTNET:
+          this.handlers[providerId] = new PiperXSwapHandler(this.chainService, this.state.balanceService);
+          break;
+        case SwapProviderId.PIPERX_MAINNET:
+          this.handlers[providerId] = new PiperXSwapHandler(this.chainService, this.state.balanceService, false);
           break;
 
         default:
