@@ -18,6 +18,7 @@ export interface ResponseSubscribeTransfer {
   feeOptions: FeeDetail;
   feeType: FeeChainType;
   feePercentageSpecialCase?: number;
+  error?: string;
 }
 
 export interface RequestSubmitTransfer extends BaseRequestSign, TransactionFee {

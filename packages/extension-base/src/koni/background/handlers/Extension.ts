@@ -1894,6 +1894,7 @@ export default class KoniExtension {
     const srcChain = this.#koniState.chainService.getChainInfoByKey(chain);
     const destChain = this.#koniState.chainService.getChainInfoByKey(_destChain);
     const nativeToken = this.#koniState.chainService.getNativeTokenInfo(chain);
+    const extrinsicType = srcChain.slug !== destChain.slug ? ExtrinsicType.TRANSFER_XCM : ExtrinsicType.TRANSFER_BALANCE;
 
     const freeBalanceSubject = new Subject<AmountData>();
     const feeSubject = new Subject<FeeInfo>();
@@ -1933,7 +1934,7 @@ export default class KoniExtension {
 
     const [unsubBalance, freeBalance] = await (async () => {
       try {
-        return await this.#koniState.balanceService.subscribeBalance(address, chain, token, 'transferable', undefined, (data) => {
+        return await this.#koniState.balanceService.subscribeBalance(address, chain, token, 'transferable', extrinsicType, (data) => {
           freeBalanceSubject.next(data); // Must be called after subscription
         });
       } catch (e) {
@@ -3920,6 +3921,7 @@ export default class KoniExtension {
       // skipFeeValidation: chosenFeeToken && allowSkipValidation
     });
   }
+
   /* Swap service */
 
   /* Notification service */
@@ -3962,6 +3964,7 @@ export default class KoniExtension {
 
     return result;
   }
+
   /* Notification service */
 
   private async submitClaimAvailBridge (data: RequestClaimBridge) {

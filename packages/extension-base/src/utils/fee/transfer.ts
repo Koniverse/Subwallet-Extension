@@ -87,7 +87,8 @@ export const calculateTransferMaxTransferable = async (id: string, request: Calc
   const feeChainType = fee.type;
   let estimatedFee: string;
   let feeOptions: FeeDetail;
-  let maxTransferable = new BigN(freeBalance.value);
+  let maxTransferable: BigN;
+  let error: string | undefined;
 
   const fakeAddress = '5DRewsYzhJqZXU3SRaWy1FSt5iDr875ao91aw5fjrJmDG4Ap'; // todo: move this
   const substrateAddress = fakeAddress; // todo: move this
@@ -222,6 +223,8 @@ export const calculateTransferMaxTransferable = async (id: string, request: Calc
       };
     }
 
+    error = (e as Error).message || 'Unable to estimate fee';
+
     console.warn('Unable to estimate fee', e);
   }
 
@@ -244,7 +247,8 @@ export const calculateTransferMaxTransferable = async (id: string, request: Calc
     maxTransferable: maxTransferable.gt(BN_ZERO) ? (maxTransferable.toFixed(0) || '0') : '0',
     feeOptions: feeOptions,
     feeType: feeChainType,
-    id: id
+    id: id,
+    error
   };
 };
 
@@ -254,6 +258,7 @@ export const calculateXCMMaxTransferable = async (id: string, request: Calculate
   let estimatedFee: string;
   let feeOptions: FeeDetail;
   let maxTransferable: BigN;
+  let error: string | undefined;
 
   const isAvailBridgeFromEvm = _isPureEvmChain(srcChain) && isAvailChainBridge(destChain.slug);
   const isAvailBridgeFromAvail = isAvailChainBridge(srcChain.slug) && _isPureEvmChain(destChain);
@@ -368,6 +373,8 @@ export const calculateXCMMaxTransferable = async (id: string, request: Calculate
       };
     }
 
+    error = (e as Error).message || 'Unable to estimate fee';
+
     console.warn('Unable to estimate fee', e);
   }
 
@@ -392,6 +399,7 @@ export const calculateXCMMaxTransferable = async (id: string, request: Calculate
     maxTransferable: maxTransferable.gt(BN_ZERO) ? (maxTransferable.toFixed(0) || '0') : '0',
     feeOptions: feeOptions,
     feeType: feeChainType,
-    id: id
+    id: id,
+    error
   };
 };
