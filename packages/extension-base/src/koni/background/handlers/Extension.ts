@@ -3940,7 +3940,8 @@ export default class KoniExtension {
 
         const step: ProcessStep = {
           ..._step,
-          status: StepStatus.QUEUED,
+          // In case one sign, status already set to prepare before
+          status: process.steps.length > 2 ? StepStatus.PREPARE : StepStatus.QUEUED,
           fee: process.totalFee[inputData.currentStep],
           metadata: metadata as unknown as Record<string, unknown>
         };
