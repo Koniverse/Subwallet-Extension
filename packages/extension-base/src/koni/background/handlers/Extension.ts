@@ -1639,7 +1639,7 @@ export default class KoniExtension {
 
     const nativeTokenBalanceInfo = {
       slug: nativeTokenInfo.slug,
-      free: tokensHasBalanceInfoMap[nativeTokenInfo.slug].free || '0',
+      free: tokensHasBalanceInfoMap[nativeTokenInfo.slug]?.free || '0',
       rate: '1'
     } as TokenHasBalanceInfo;
 
