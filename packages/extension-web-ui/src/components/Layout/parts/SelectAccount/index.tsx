@@ -288,6 +288,7 @@ const SelectAccount = styled(Component)<Props>(({ theme }) => {
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'row',
+      paddingRight: token.padding,
 
       '.ant-select-modal-input-container.ant-select-modal-input-border-round::before': {
         display: 'none'
