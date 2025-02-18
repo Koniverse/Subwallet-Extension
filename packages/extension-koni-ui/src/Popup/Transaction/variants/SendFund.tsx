@@ -888,7 +888,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   }, [accountAddressItems, addressInputCurrent, chainInfoMap, chainValue, disabledToAddressInput, form, fromValue]);
 
   useEffect(() => {
-    let cancel = true;
+    let cancel = false;
 
     const fetchTokens = async () => {
       try {
@@ -912,7 +912,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     });
 
     return () => {
-      cancel = false;
+      cancel = true;
     };
   }, [chainValue, currentAccountProxy?.id, fromValue, nativeTokenBalance, nativeTokenSlug]);
 

@@ -201,7 +201,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
                     }
                     onClick={isEditButton ? onClickEdit : undefined}
                     size='xs'
-                    title={isEditButton ? undefined : t('Coming soon!')}
+                    tooltip={isEditButton ? undefined : t('Coming soon!')}
                     type='ghost'
                   />
                 </div>

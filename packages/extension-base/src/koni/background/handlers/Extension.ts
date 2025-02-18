@@ -1630,7 +1630,12 @@ export default class KoniExtension {
     // ensure nativeTokenInfo and localTokenInfo have multi-location metadata beforehand to improve performance.
     const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalance(proxyId, chain);
     const tokensHasBalanceSlug = Object.keys(tokensHasBalanceInfoMap);
-    const tokenInfos = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => token.assetType !== _AssetType.NATIVE && token.metadata && token.metadata.multilocation);
+    const tokenInfos = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => (
+      token.originChain === chain &&
+      token.assetType !== _AssetType.NATIVE &&
+      token.metadata &&
+      token.metadata.multilocation
+    ));
     const nativeTokenInfo = chainService.getNativeTokenInfo(chain);
     const nativeTokenBalanceInfo = {
       slug: nativeTokenInfo.slug,
@@ -1639,7 +1644,9 @@ export default class KoniExtension {
     } as TokenHasBalanceInfo;
     const tokensCanPayFee: TokenHasBalanceInfo[] = [nativeTokenBalanceInfo];
 
-    if (!nativeTokenInfo.metadata || !nativeTokenInfo.metadata.multilocation) {
+    const supportedChain: string[] = ['westend_assethub', 'statemint', 'statemine'];
+
+    if (!supportedChain.includes(chain) || !nativeTokenInfo.metadata || !nativeTokenInfo.metadata.multilocation) {
       return tokensCanPayFee;
     }
 
