@@ -3,25 +3,38 @@
 
 import { NotificationType } from '@subwallet/extension-base/background/KoniTypes';
 import { AccountProxyType, ResponseMnemonicValidateV2 } from '@subwallet/extension-base/types';
-import { AccountNameModal, CloseIcon, InstructionContentType, Layout, PageWrapper, PhraseNumberSelector, SeedPhraseInput } from '@subwallet/extension-web-ui/components';
+import {
+  AccountNameModal,
+  CloseIcon,
+  InstructionContentType,
+  Layout,
+  PageWrapper,
+  PhraseNumberSelector,
+  SeedPhraseInput
+} from '@subwallet/extension-web-ui/components';
 import InstructionContainer from '@subwallet/extension-web-ui/components/InstructionContainer';
-import { ACCOUNT_NAME_MODAL, DEFAULT_ACCOUNT_TYPES, IMPORT_ACCOUNT_MODAL, IMPORT_SEED_MODAL, SELECTED_ACCOUNT_TYPE } from '@subwallet/extension-web-ui/constants';
+import { ACCOUNT_NAME_MODAL, IMPORT_ACCOUNT_MODAL, IMPORT_SEED_MODAL } from '@subwallet/extension-web-ui/constants';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
 import { WalletModalContext } from '@subwallet/extension-web-ui/contexts/WalletModalContextProvider';
-import { useAutoNavigateToCreatePassword, useCompleteCreateAccount, useDefaultNavigate, useFocusFormItem, useGoBackFromCreateAccount, useNotification, useTranslation, useUnlockChecker } from '@subwallet/extension-web-ui/hooks';
-import { useLocalStorage } from '@subwallet/extension-web-ui/hooks/common/useLocalStorage';
+import {
+  useAutoNavigateToCreatePassword,
+  useCompleteCreateAccount,
+  useDefaultNavigate,
+  useFocusFormItem,
+  useGoBackFromCreateAccount,
+  useNotification,
+  useTranslation,
+  useUnlockChecker
+} from '@subwallet/extension-web-ui/hooks';
 import { createAccountSuriV2, validateSeedV2 } from '@subwallet/extension-web-ui/messaging';
 import { FormCallbacks, FormFieldData, FormRule, ThemeProps } from '@subwallet/extension-web-ui/types';
 import { convertFieldToObject, noop, simpleCheckForm } from '@subwallet/extension-web-ui/utils';
-import { KeypairType } from '@subwallet/keyring/types';
 import { Button, Form, Icon, Input, ModalContext } from '@subwallet/react-ui';
 import { wordlists } from 'bip39';
 import CN from 'classnames';
 import { CheckCircle, Eye, EyeSlash, FileArrowDown, XCircle } from 'phosphor-react';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import styled from 'styled-components';
-
-import SelectAccountType from '../../components/Account/SelectAccountType';
 
 type Props = ThemeProps;
 
@@ -75,13 +88,8 @@ const Component: React.FC<Props> = ({ className }: Props) => {
   const phraseNumber = Form.useWatch('phraseNumber', form);
 
   const [submitting, setSubmitting] = useState(false);
-  const [storage] = useLocalStorage(SELECTED_ACCOUNT_TYPE, DEFAULT_ACCOUNT_TYPES);
   const [accountCreating, setAccountCreating] = useState(false);
   const [seedValidationResponse, setSeedValidationResponse] = useState<undefined | ResponseMnemonicValidateV2>();
-  const [outerKeyTypes] = useState(storage);
-  const [localKeyTypes, setLocalKeyTypes] = useState<KeypairType[]>(DEFAULT_ACCOUNT_TYPES);
-  const keyTypes = isWebUI ? localKeyTypes : outerKeyTypes;
-
   const [disabled, setDisabled] = useState(true);
   const [showSeed, setShowSeed] = useState(false);
   const checkUnlock = useUnlockChecker();
@@ -357,18 +365,11 @@ const Component: React.FC<Props> = ({ className }: Props) => {
 
           {isWebUI && (
             <>
-              <div className='__select-account-type'>
-                <SelectAccountType
-                  selectedItems={localKeyTypes}
-                  setSelectedItems={setLocalKeyTypes}
-                />
-              </div>
-
               <Button
                 {...buttonProps}
                 block={true}
                 className='__submit-button'
-                disabled={disabled || !keyTypes.length}
+                disabled={disabled}
               />
             </>
           )}
