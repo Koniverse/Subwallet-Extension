@@ -3,7 +3,7 @@
 
 import { _getAssetDecimals, _getAssetPriceId, _getAssetSymbol, _isNativeToken, _isNativeTokenBySlug } from '@subwallet/extension-base/services/chain-service/utils';
 import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
-import { FeeDetail, TransactionFee } from '@subwallet/extension-base/types';
+import { FeeChainType, FeeDetail, TransactionFee } from '@subwallet/extension-base/types';
 import { BN_ZERO } from '@subwallet/extension-base/utils';
 import ChooseFeeTokenModal from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/ChooseFeeTokenModal';
 import { ASSET_HUB_CHAIN_SLUGS, BN_TEN, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
@@ -40,7 +40,7 @@ type Props = ThemeProps & {
   feeOptionsInfo?: FeeDetail;
   estimateFee: string;
   renderFieldNode?: (params: RenderFieldNodeParams) => React.ReactNode;
-  feeType?: string;
+  feeType?: FeeChainType;
   listTokensCanPayFee: TokenHasBalanceInfo[];
   onSetTokenPayFee: (slug: string) => void;
   currentTokenPayFee?: string;
@@ -138,7 +138,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
   }, [chainValue, destChainValue]);
 
   const isEditButton = useMemo(() => {
-    return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) || feeType === 'evm')) && !isXcm;
+    return !!(chainValue && (ASSET_HUB_CHAIN_SLUGS.includes(chainValue) && feeType === 'substrate')) && !isXcm;
   }, [isXcm, chainValue, feeType]);
 
   const rateValue = useMemo(() => {
