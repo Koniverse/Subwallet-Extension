@@ -14,6 +14,7 @@ import { _isPolygonChainBridge } from '@subwallet/extension-base/services/balanc
 import { _isPosChainBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/posBridge';
 import { _EvmApi, _SubstrateApi, _TonApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _getContractAddressOfToken, _isChainEvmCompatible, _isChainTonCompatible, _isLocalToken, _isNativeToken, _isPureEvmChain, _isTokenEvmSmartContract, _isTokenTransferredByEvm, _isTokenTransferredByTon } from '@subwallet/extension-base/services/chain-service/utils';
+import { calculateToAmountByReservePool, FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE } from '@subwallet/extension-base/services/fee-service/utils';
 import { isTonTransaction } from '@subwallet/extension-base/services/transaction-service/helpers';
 import { ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
 import { EvmEIP1559FeeOption, FeeChainType, FeeDetail, FeeInfo, SubstrateTipInfo, TransactionFee } from '@subwallet/extension-base/types';
@@ -38,7 +39,9 @@ export interface CalculateMaxTransferable extends TransactionFee {
   substrateApi: _SubstrateApi;
   evmApi: _EvmApi;
   tonApi: _TonApi;
-  recalculateMaxTransferableSpecialCase: (transferInfo: ResponseSubscribeTransfer) => Promise<ResponseSubscribeTransfer>;
+  isTransferLocalTokenAndPayThatTokenAsFee: boolean;
+  isTransferNativeTokenAndPayLocalTokenAsFee: boolean;
+  nativeToken: _ChainAsset;
 }
 
 export const detectTransferTxType = (srcToken: _ChainAsset, srcChain: _ChainInfo, destChain: _ChainInfo): FeeChainType => {
@@ -63,7 +66,7 @@ export const detectTransferTxType = (srcToken: _ChainAsset, srcChain: _ChainInfo
 };
 
 export const calculateMaxTransferable = async (id: string, request: CalculateMaxTransferable, freeBalance: AmountData, fee: FeeInfo): Promise<ResponseSubscribeTransfer> => {
-  const { destChain, recalculateMaxTransferableSpecialCase, srcChain } = request;
+  const { destChain, srcChain } = request;
   const isXcmTransfer = srcChain.slug !== destChain.slug;
 
   let maxTransferableAmount: ResponseSubscribeTransfer;
@@ -74,11 +77,13 @@ export const calculateMaxTransferable = async (id: string, request: CalculateMax
     maxTransferableAmount = await calculateTransferMaxTransferable(id, request, freeBalance, fee);
   }
 
-  return recalculateMaxTransferableSpecialCase(maxTransferableAmount);
+  maxTransferableAmount.feePercentageSpecialCase = FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE;
+
+  return maxTransferableAmount;
 };
 
 export const calculateTransferMaxTransferable = async (id: string, request: CalculateMaxTransferable, freeBalance: AmountData, fee: FeeInfo): Promise<ResponseSubscribeTransfer> => {
-  const { address, destChain, evmApi, feeCustom, feeOption, srcChain, srcToken, substrateApi, tonApi } = request;
+  const { address, destChain, evmApi, feeCustom, feeOption, isTransferLocalTokenAndPayThatTokenAsFee, isTransferNativeTokenAndPayLocalTokenAsFee, nativeToken, srcChain, srcToken, substrateApi, tonApi } = request;
   const feeChainType = fee.type;
   let estimatedFee: string;
   let feeOptions: FeeDetail;
@@ -220,13 +225,23 @@ export const calculateTransferMaxTransferable = async (id: string, request: Calc
     console.warn('Unable to estimate fee', e);
   }
 
-  maxTransferable = maxTransferable
-    .minus(new BigN(estimatedFee));
+  if (isTransferLocalTokenAndPayThatTokenAsFee && feeChainType === 'substrate') {
+    const estimatedFeeNative = (BigInt(estimatedFee) * BigInt(FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE) / BigInt(100)).toString();
+    const estimatedFeeLocal = await calculateToAmountByReservePool(substrateApi.api, nativeToken, srcToken, estimatedFeeNative);
+
+    maxTransferable = BigN(freeBalance.value).minus(estimatedFeeLocal);
+  } else if (isTransferNativeTokenAndPayLocalTokenAsFee) {
+    maxTransferable = BigN(freeBalance.value);
+  } else {
+    if (!_isNativeToken(srcToken)) {
+      maxTransferable = BigN(freeBalance.value);
+    } else {
+      maxTransferable = BigN(freeBalance.value).minus(new BigN(estimatedFee));
+    }
+  }
 
   return {
-    maxTransferable: !_isNativeToken(srcToken)
-      ? freeBalance.value
-      : maxTransferable.gt(BN_ZERO) ? (maxTransferable.toFixed(0) || '0') : '0',
+    maxTransferable: maxTransferable.gt(BN_ZERO) ? (maxTransferable.toFixed(0) || '0') : '0',
     feeOptions: feeOptions,
     feeType: feeChainType,
     id: id
@@ -234,11 +249,11 @@ export const calculateTransferMaxTransferable = async (id: string, request: Calc
 };
 
 export const calculateXCMMaxTransferable = async (id: string, request: CalculateMaxTransferable, freeBalance: AmountData, fee: FeeInfo): Promise<ResponseSubscribeTransfer> => {
-  const { address, destChain, destToken, evmApi, feeCustom, feeOption, srcChain, srcToken, substrateApi } = request;
+  const { address, destChain, destToken, evmApi, feeCustom, feeOption, isTransferLocalTokenAndPayThatTokenAsFee, isTransferNativeTokenAndPayLocalTokenAsFee, nativeToken, srcChain, srcToken, substrateApi } = request;
   const feeChainType = fee.type;
   let estimatedFee: string;
   let feeOptions: FeeDetail;
-  let maxTransferable = new BigN(freeBalance.value);
+  let maxTransferable: BigN;
 
   const isAvailBridgeFromEvm = _isPureEvmChain(srcChain) && isAvailChainBridge(destChain.slug);
   const isAvailBridgeFromAvail = isAvailChainBridge(srcChain.slug) && _isPureEvmChain(destChain);
@@ -254,8 +269,6 @@ export const calculateXCMMaxTransferable = async (id: string, request: Calculate
 
   try {
     if (!destToken) {
-      maxTransferable = BN_ZERO;
-
       throw Error('Destination token is not available');
     }
 
@@ -358,13 +371,25 @@ export const calculateXCMMaxTransferable = async (id: string, request: Calculate
     console.warn('Unable to estimate fee', e);
   }
 
-  maxTransferable = maxTransferable
-    .minus(new BigN(estimatedFee).multipliedBy(XCM_FEE_RATIO));
+  if (!destToken) {
+    maxTransferable = BN_ZERO;
+  } else if (isTransferLocalTokenAndPayThatTokenAsFee && feeChainType === 'substrate') {
+    const estimatedFeeNative = (BigInt(estimatedFee) * BigInt(FEE_COVERAGE_PERCENTAGE_SPECIAL_CASE) / BigInt(100)).toString();
+    const estimatedFeeLocal = await calculateToAmountByReservePool(substrateApi.api, nativeToken, srcToken, estimatedFeeNative);
+
+    maxTransferable = BigN(freeBalance.value).minus(estimatedFeeLocal);
+  } else if (isTransferNativeTokenAndPayLocalTokenAsFee) {
+    maxTransferable = BigN(freeBalance.value);
+  } else {
+    if (!_isNativeToken(srcToken)) {
+      maxTransferable = BigN(freeBalance.value);
+    } else {
+      maxTransferable = BigN(freeBalance.value).minus(new BigN(estimatedFee).multipliedBy(XCM_FEE_RATIO));
+    }
+  }
 
   return {
-    maxTransferable: !_isNativeToken(srcToken)
-      ? freeBalance.value
-      : maxTransferable.gt(BN_ZERO) ? (maxTransferable.toFixed(0) || '0') : '0',
+    maxTransferable: maxTransferable.gt(BN_ZERO) ? (maxTransferable.toFixed(0) || '0') : '0',
     feeOptions: feeOptions,
     feeType: feeChainType,
     id: id
