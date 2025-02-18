@@ -136,6 +136,7 @@ export class UniswapHandler implements SwapBaseInterface {
   public async handleSubmitStep (params: SwapSubmitParams): Promise<SwapSubmitStepData> {
     const fromAsset = this.chainService.getAssetBySlug(params.quote.pair.from);
 
+    console.log('header', headers);
     const { permitData, quote, routing } = params.quote.metadata as UniswapMetadata;
 
     let signature;
