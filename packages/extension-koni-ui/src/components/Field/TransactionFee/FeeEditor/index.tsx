@@ -9,11 +9,11 @@ import ChooseFeeTokenModal from '@subwallet/extension-koni-ui/components/Field/T
 import { ASSET_HUB_CHAIN_SLUGS, BN_TEN, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { useSelector } from '@subwallet/extension-koni-ui/hooks';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
-import { Icon, ModalContext, Number, Tooltip } from '@subwallet/react-ui';
+import { ActivityIndicator, Button, Icon, ModalContext, Number } from '@subwallet/react-ui';
 import BigN from 'bignumber.js';
 import CN from 'classnames';
 import { PencilSimpleLine } from 'phosphor-react';
-import React, { useCallback, useContext, useMemo } from 'react';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 
@@ -41,7 +41,6 @@ type Props = ThemeProps & {
   estimateFee: string;
   renderFieldNode?: (params: RenderFieldNodeParams) => React.ReactNode;
   feeType?: string;
-  loading?: boolean;
   listTokensCanPayFee: TokenHasBalanceInfo[];
   onSetTokenPayFee: (slug: string) => void;
   currentTokenPayFee?: string;
@@ -54,12 +53,13 @@ type Props = ThemeProps & {
 // todo: will update dynamic later
 const modalId = 'FeeEditorModalId';
 
-const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, estimateFee, feeOptionsInfo, feePercentageSpecialCase, feeType, isLoading = false, listTokensCanPayFee, loading, nativeTokenSlug, onSelect, onSetTokenPayFee, renderFieldNode, selectedFeeOption, tokenPayFeeSlug, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, estimateFee, feeOptionsInfo, feePercentageSpecialCase, feeType, isLoading = false, listTokensCanPayFee, nativeTokenSlug, onSelect, onSetTokenPayFee, renderFieldNode, selectedFeeOption, tokenPayFeeSlug, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal } = useContext(ModalContext);
   const assetRegistry = useSelector((root) => root.assetRegistry.assetRegistry);
   // @ts-ignore
   const priceMap = useSelector((state) => state.price.priceMap);
+  const [feeEditorModalRenderKey, setFeeEditorModalRenderKey] = useState<string>(modalId);
 
   const tokenAsset = (() => {
     return assetRegistry[tokenPayFeeSlug] || undefined;
@@ -87,20 +87,28 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
     return BN_ZERO;
   }, []);
 
+  const isDataReady = !isLoading && !!feeOptionsInfo;
+
   const convertedFeeValueToUSD = useMemo(() => {
+    if (!isDataReady) {
+      return 0;
+    }
+
     return new BigN(estimateFee)
       .multipliedBy(priceNativeValue)
       .dividedBy(BN_TEN.pow(nativeTokenDecimals || 0))
       .toNumber();
-  }, [estimateFee, nativeTokenDecimals, priceNativeValue]);
+  }, [estimateFee, isDataReady, nativeTokenDecimals, priceNativeValue]);
+
   const onClickEdit = useCallback(() => {
-    setTimeout(() => {
-      if (chainValue && ASSET_HUB_CHAIN_SLUGS.includes(chainValue)) {
-        activeModal(CHOOSE_FEE_TOKEN_MODAL);
-      } else {
+    if (chainValue && ASSET_HUB_CHAIN_SLUGS.includes(chainValue)) {
+      activeModal(CHOOSE_FEE_TOKEN_MODAL);
+    } else {
+      setFeeEditorModalRenderKey(`${modalId}_${Date.now()}`);
+      setTimeout(() => {
         activeModal(modalId);
-      }
-    }, 100);
+      }, 100);
+    }
   }, [activeModal, chainValue]);
 
   const onSelectTransactionFee = useCallback((fee: TransactionFee) => {
@@ -136,7 +144,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
   const rateValue = useMemo(() => {
     const selectedToken = listTokensCanPayFee.find((item) => item.slug === tokenPayFeeSlug);
 
-    return selectedToken?.rate || 0;
+    return selectedToken?.rate || 1;
   }, [listTokensCanPayFee, tokenPayFeeSlug]);
 
   const convertedEstimatedFee = useMemo(() => {
@@ -155,12 +163,20 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
                 {t('Estimated fee')}:
               </div>
 
-              <Number
-                className={'__fee-value'}
-                decimal={isNativeTokenValue ? nativeTokenDecimals : decimals}
-                suffix={isNativeTokenValue ? nativeTokenSymbol : symbol}
-                value={isNativeTokenValue ? estimateFee : convertedEstimatedFee}
-              />
+              <div>
+                {!isDataReady
+                  ? (
+                    <ActivityIndicator size={20} />
+                  )
+                  : (
+                    <Number
+                      className={'__fee-value'}
+                      decimal={isNativeTokenValue ? nativeTokenDecimals : decimals}
+                      suffix={isNativeTokenValue ? nativeTokenSymbol : symbol}
+                      value={isNativeTokenValue ? estimateFee : convertedEstimatedFee}
+                    />
+                  )}
+              </div>
             </div>
             {feeType !== 'ton' && (
               <div className='__field-right-part'>
@@ -173,18 +189,21 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
                     prefix={'~ $'}
                     value={convertedFeeValueToUSD}
                   />
-                  <Tooltip
-                    placement='leftTop'
-                    title={isEditButton ? undefined : t('Coming soon!')}
-                  >
-                    <div onClick={ isEditButton ? onClickEdit : undefined}>
+
+                  <Button
+                    className={'__fee-editor-button'}
+                    disabled={!isDataReady}
+                    icon={
                       <Icon
-                        className={'__edit-icon'}
-                        customSize={'20px'}
                         phosphorIcon={PencilSimpleLine}
+                        size='sm'
                       />
-                    </div>
-                  </Tooltip>
+                    }
+                    onClick={isEditButton ? onClickEdit : undefined}
+                    size='xs'
+                    title={isEditButton ? undefined : t('Coming soon!')}
+                    type='ghost'
+                  />
                 </div>
               </div>
             )}
@@ -198,6 +217,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, destChainValue, 
         decimals={decimals}
         feeOptionsInfo={feeOptionsInfo}
         feeType={feeType}
+        key={feeEditorModalRenderKey}
         listTokensCanPayFee={listTokensCanPayFee}
         modalId={modalId}
         onSelectOption={onSelectTransactionFee}
@@ -242,6 +262,7 @@ const FeeEditor = styled(Component)<Props>(({ theme: { token } }: Props) => {
     '&.__estimate-fee-wrapper': {
       backgroundColor: token.colorBgSecondary,
       padding: token.paddingSM,
+      paddingRight: token.paddingXS,
       height: token.sizeXXL,
       borderRadius: token.borderRadiusLG,
       '.__edit-icon': {
@@ -263,12 +284,17 @@ const FeeEditor = styled(Component)<Props>(({ theme: { token } }: Props) => {
     },
 
     '.__fee-editor-area': {
-      cursor: 'pointer',
       display: 'flex',
-      gap: token.sizeXXS,
       fontSize: token.fontSize,
       lineHeight: token.lineHeight,
-      color: token.colorTextLight1
+      color: token.colorTextLight1,
+      alignItems: 'center'
+    },
+
+    '.__fee-editor-button.__fee-editor-button.__fee-editor-button': {
+      minWidth: 28,
+      width: 28,
+      height: 28
     }
   });
 });

@@ -145,6 +145,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     };
   }, [defaultData]);
 
+  const toValue = useWatchTransaction('to', form, defaultData);
   const destChainValue = useWatchTransaction('destChain', form, defaultData);
   const transferAmountValue = useWatchTransaction('value', form, defaultData);
   const fromValue = useWatchTransaction('from', form, defaultData);
@@ -887,6 +888,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   }, [accountAddressItems, addressInputCurrent, chainInfoMap, chainValue, disabledToAddressInput, form, fromValue]);
 
   useEffect(() => {
+    let cancel = true;
+
     const fetchTokens = async () => {
       try {
         const _response = await getTokensCanPayFee({
@@ -896,7 +899,9 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
 
         const response = _response.filter((item) => item !== null && item !== undefined);
 
-        setListTokensCanPayFee(response);
+        if (!cancel) {
+          setListTokensCanPayFee(response);
+        }
       } catch (error) {
         console.error('Error fetching tokens:', error);
       }
@@ -905,6 +910,10 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
     fetchTokens().catch((error) => {
       console.error('Unhandled error in fetchTokens:', error);
     });
+
+    return () => {
+      cancel = false;
+    };
   }, [chainValue, currentAccountProxy?.id, fromValue, nativeTokenBalance, nativeTokenSlug]);
 
   useRestoreTransaction(form);
@@ -1020,7 +1029,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           </Form.Item>
         </Form>
 
-        {!TON_CHAINS.includes(chainValue) && nativeTokenSlug && (<FeeEditor
+        {!TON_CHAINS.includes(chainValue) && !!toValue && !!transferAmountValue && nativeTokenSlug && (<FeeEditor
           chainValue={chainValue}
           currentTokenPayFee={currentNonNativeTokenPayFee}
           destChainValue={destChainValue}
@@ -1028,8 +1037,8 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
           feeOptionsInfo={transferInfo?.feeOptions}
           feePercentageSpecialCase={transferInfo?.feePercentageSpecialCase}
           feeType={transferInfo?.feeType}
+          isLoading={loading || isFetchingInfo}
           listTokensCanPayFee={listTokensCanPayFee}
-          loading={loading}
           nativeTokenSlug={nativeTokenSlug}
           onSelect={setSelectedTransactionFee}
           onSetTokenPayFee={onSetTokenPayFee}

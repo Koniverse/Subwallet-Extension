@@ -58,7 +58,8 @@ const OPTIONS: FeeDefaultOption[] = [
 const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOptionsInfo, feeType, listTokensCanPayFee, modalId, onSelectOption, onSetTokenPayFee, priceValue, selectedFeeOption, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal, inactiveModal } = useContext(ModalContext);
-  const [currentViewMode, setViewMode] = useState<ViewMode>(ViewMode.RECOMMENDED);
+
+  const [currentViewMode, setViewMode] = useState<ViewMode>(selectedFeeOption?.feeOption === 'custom' ? ViewMode.CUSTOM : ViewMode.RECOMMENDED);
   const [form] = Form.useForm<FormProps>();
   const [optionSelected, setOptionSelected] = useState<TransactionFee | undefined>(selectedFeeOption);
 
@@ -69,6 +70,10 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
   }, [feeType]);
 
   const feeDefaultValue = useMemo(() => {
+    if (selectedFeeOption && selectedFeeOption.feeOption === 'custom' && selectedFeeOption.feeCustom) {
+      return selectedFeeOption.feeCustom as EvmEIP1559FeeOption;
+    }
+
     const defaultOption = feeOptionsInfo?.options?.default;
 
     if (defaultOption) {
@@ -76,7 +81,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
     }
 
     return undefined;
-  }, [feeOptionsInfo]);
+  }, [feeOptionsInfo?.options, selectedFeeOption]);
 
   const formDefault = useMemo((): FormProps => {
     return {
@@ -137,6 +142,8 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
       ? ((optionValue.maxWaitTimeEstimate || 0) + (optionValue.minWaitTimeEstimate || 0)) / 2
       : 0;
 
+    const isSelected = optionSelected ? optionSelected?.feeOption === option : feeOptionsInfo?.options?.default === option;
+
     return (
       <FeeOptionItem
         className={'__fee-option-item'}
@@ -145,7 +152,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
           decimals: decimals,
           symbol: symbol
         }}
-        isSelected={optionSelected?.feeOption === option}
+        isSelected={isSelected}
         key={option}
         onClick={_onSelectOption({ feeOption: option })}
         time={estimatedWaitTime}
@@ -154,7 +161,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
     );
   };
 
-  const _onSelectCustomOption = useCallback(() => {
+  const _onSubmitCustomOption = useCallback(() => {
     let customValue;
 
     if (feeType === 'evm') {
@@ -166,8 +173,9 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
       customValue = form.getFieldValue('customValue') as FeeCustom;
     }
 
-    setOptionSelected({ feeCustom: customValue, feeOption: 'custom' });
-  }, [feeType, form]);
+    onSelectOption({ feeCustom: customValue, feeOption: 'custom' });
+    inactiveModal(modalId);
+  }, [feeType, form, inactiveModal, modalId, onSelectOption]);
 
   const customValueValidator = useCallback((rule: Rule, value: string): Promise<void> => {
     if (!value) {
@@ -232,13 +240,16 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
   }, [activeModal]);
 
   const onClickSubmit = useCallback(() => {
-    if (optionSelected) {
-      onSelectOption(optionSelected);
-    }
+    if (currentViewMode === ViewMode.RECOMMENDED) {
+      if (optionSelected) {
+        onSelectOption(optionSelected);
+      }
 
-    inactiveModal(modalId);
-    form.submit();
-  }, [form, inactiveModal, modalId, onSelectOption, optionSelected]);
+      inactiveModal(modalId);
+    } else {
+      form.submit();
+    }
+  }, [currentViewMode, form, inactiveModal, modalId, onSelectOption, optionSelected]);
 
   const renderCustomValueField = () => (
     <div className='__custom-value-field-wrapper'>
@@ -388,7 +399,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
               <Form
                 form={form}
                 initialValues={formDefault}
-                onFinish={_onSelectCustomOption}
+                onFinish={_onSubmitCustomOption}
                 onValuesChange={onValuesChange}
               >
                 {feeType === 'evm'
