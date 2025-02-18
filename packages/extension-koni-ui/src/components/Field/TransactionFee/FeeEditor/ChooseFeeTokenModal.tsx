@@ -57,7 +57,7 @@ const Component: React.FC<Props> = (props: Props) => {
       const estimatedFeeValue = slug !== tokenSlug ? estimateFee : estimateFeeSpecial;
       const convertedAmountToPay = new BigN(estimatedFeeValue).multipliedBy(rate);
 
-      const isDisableItem = !convertedAmountToPay || new BigN(balance).lt(convertedAmountToPay);
+      const isDisableItem = !convertedAmountToPay || convertedAmountToPay.lte(0) || new BigN(balance).lt(convertedAmountToPay);
 
       return { ...item, isDisableItem, convertedAmountToPay };
     });

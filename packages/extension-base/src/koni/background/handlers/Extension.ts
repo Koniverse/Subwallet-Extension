@@ -1654,11 +1654,11 @@ export default class KoniExtension {
       const tokenSlug = tokenInfo.slug;
       const reserve = await getReserveForPool(substrateApi.api, nativeTokenInfo, tokenInfo);
 
-      if (!reserve || !reserve[0] || !reserve[1]) {
+      if (!reserve || !reserve[0] || !reserve[1] || reserve[0] === '0' || reserve[1] === '0') {
         return;
       }
 
-      const rate = new BigN(reserve[1]).div(reserve[0]).toString();
+      const rate = new BigN(reserve[1]).div(reserve[0]).toFixed();
       const tokenCanPayFee = {
         slug: tokenSlug,
         free: tokensHasBalanceInfoMap[tokenSlug].free,
