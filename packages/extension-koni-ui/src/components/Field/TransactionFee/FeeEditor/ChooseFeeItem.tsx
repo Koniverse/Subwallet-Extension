@@ -16,16 +16,16 @@ import styled from 'styled-components';
 type Props = ThemeProps & {
   slug: string,
   amountToPay: string | number | BigN,
-  rate: string,
   selected?: boolean,
   onSelect?: (slug: string) => void,
   balance: string,
+  isDisable?: boolean
 }
 const numberMetadata = { maxNumberFormat: 6 };
 
 // TODO: Merge this component with ChooseFeeItem in Swap.
 const Component: React.FC<Props> = (props: Props) => {
-  const { amountToPay, balance, className, onSelect, rate, selected, slug } = props;
+  const { amountToPay, balance, className, isDisable, onSelect, selected, slug } = props;
   const assetRegistryMap = useSelector((state) => state.assetRegistry.assetRegistry);
   const { t } = useTranslation();
   const _onSelect = useCallback(() => {
@@ -38,23 +38,11 @@ const Component: React.FC<Props> = (props: Props) => {
 
   const decimal = _getAssetDecimals(feeAssetInfo);
 
-  const convertedAmountToPay = useMemo(() => {
-    return new BigN(amountToPay).multipliedBy(rate);
-  }, [amountToPay, rate]);
-
-  const isDisableItem = useMemo(() => {
-    if (!convertedAmountToPay) {
-      return true;
-    }
-
-    return new BigN(balance).lt(new BigN(convertedAmountToPay));
-  }, [balance, convertedAmountToPay]);
-
   return (
     <>
       <div
-        className={CN(className, '__choose-fee-item-wrapper', { '__is-disable': isDisableItem })}
-        onClick={isDisableItem ? undefined : _onSelect}
+        className={CN(className, '__choose-fee-item-wrapper', { '__is-disable': isDisable })}
+        onClick={isDisable ? undefined : _onSelect}
       >
         <div className={'__left-part'}>
           <Logo
@@ -66,7 +54,7 @@ const Component: React.FC<Props> = (props: Props) => {
           />
           <div className={'__fee-info'}>
             <div className={'__line-1'}>
-              {convertedAmountToPay
+              {amountToPay
                 ? (<Number
                   className={'__amount-fee-info'}
                   customFormatter={swapCustomFormatter}
@@ -74,7 +62,7 @@ const Component: React.FC<Props> = (props: Props) => {
                   formatType={'custom'}
                   metadata={numberMetadata}
                   suffix={_getAssetSymbol(feeAssetInfo)}
-                  value={convertedAmountToPay}
+                  value={amountToPay}
                 />)
                 : <div className={'__fee-symbol'}>{_getAssetSymbol(feeAssetInfo)}</div>
               }

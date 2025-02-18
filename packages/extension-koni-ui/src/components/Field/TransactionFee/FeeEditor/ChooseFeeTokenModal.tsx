@@ -25,6 +25,12 @@ type Props = ThemeProps & {
   tokenSlug: string,
   feePercentageSpecialCase?: number
 }
+
+interface TokenWithFeeInfo extends TokenHasBalanceInfo {
+  isDisableItem: boolean;
+  convertedAmountToPay: BigN;
+}
+
 const numberMetadata = { maxNumberFormat: 8 };
 
 // TODO: Merge this component with ChooseFeeTokenModal in Swap.
@@ -40,6 +46,26 @@ const Component: React.FC<Props> = (props: Props) => {
   const estimateFeeSpecial = useMemo(() => {
     return feePercentageSpecialCase && !tokenSlug.includes(_AssetType.NATIVE) ? (new BigN(estimateFee).multipliedBy(feePercentageSpecialCase).div(100)).toString() : estimateFee;
   }, [estimateFee, feePercentageSpecialCase, tokenSlug]);
+
+  const tokensWithFeeInfo: TokenWithFeeInfo[] | undefined = useMemo(() => {
+    if (!items) {
+      return undefined;
+    }
+
+    const processedItems = items.map((item) => {
+      const { free: balance, rate, slug } = item;
+      const estimatedFeeValue = slug !== tokenSlug ? estimateFee : estimateFeeSpecial;
+      const convertedAmountToPay = new BigN(estimatedFeeValue).multipliedBy(rate);
+
+      const isDisableItem = !convertedAmountToPay || new BigN(balance).lt(convertedAmountToPay);
+
+      return { ...item, isDisableItem, convertedAmountToPay };
+    });
+
+    return processedItems.sort((a, b) => {
+      return (a.isDisableItem ? 1 : 0) - (b.isDisableItem ? 1 : 0);
+    });
+  }, [estimateFee, estimateFeeSpecial, items, tokenSlug]);
 
   return (
     <>
@@ -68,13 +94,13 @@ const Component: React.FC<Props> = (props: Props) => {
             />
             <span className={'__pay-with'}>Pay with:</span>
           </div>
-          {items && items.map((item, index) => (
+          {tokensWithFeeInfo && tokensWithFeeInfo.map((item, index) => (
             <ChooseFeeItem
-              amountToPay={ item.slug !== tokenSlug ? estimateFee : estimateFeeSpecial}
+              amountToPay={ item.convertedAmountToPay}
               balance={item?.free}
+              isDisable={item.isDisableItem}
               key={`${item.slug}-${index}`}
               onSelect={onSelectItem}
-              rate={item.rate}
               selected={selectedItem === item.slug}
               slug={item.slug}
             />
