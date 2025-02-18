@@ -2,12 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { StepStatus } from '@subwallet/extension-base/types';
+import { detectTranslate } from '@subwallet/extension-base/utils';
 import { AlertBox, BackgroundExpandView } from '@subwallet/extension-koni-ui/components';
 import { useIsPopup } from '@subwallet/extension-koni-ui/hooks';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
+import { Trans } from 'react-i18next';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
 type Props = ThemeProps & {
@@ -18,12 +21,19 @@ const Component: React.FC<Props> = (props: Props) => {
   const { children, className } = props;
   const aliveProcessMap = useSelector((state: RootState) => state.requestState.aliveProcess);
   const isPopup = useIsPopup();
+  const navigate = useNavigate();
 
   const processIds = useMemo(() => {
-    const aliveProcesses = Object.values(aliveProcessMap).filter((p) => ![StepStatus.QUEUED, StepStatus.PREPARE].includes(p.status));
+    const aliveProcesses = Object.values(aliveProcessMap).filter((p) => ![StepStatus.QUEUED].includes(p.status));
 
     return aliveProcesses.map((p) => p.id);
   }, [aliveProcessMap]);
+
+  const navigateToNotification = useCallback((processId: string) => {
+    return () => {
+      navigate(`/settings/notification?transaction-process-id=${processId}`);
+    };
+  }, [navigate]);
 
   return (
     <div className={className}>
@@ -33,7 +43,19 @@ const Component: React.FC<Props> = (props: Props) => {
             {processIds.map((p) => (
               <AlertBox
                 className={'transaction-process-warning-item'}
-                description={'Transaction is in progress. Keep SubWallet open to complete the transaction'}
+                description={(
+                  <Trans
+                    components={{
+                      highlight: (
+                        <span
+                          className='link'
+                          onClick={navigateToNotification(p)}
+                        />
+                      )
+                    }}
+                    i18nKey={detectTranslate('Transaction is in progress. Go to <highlight>Notifications</highlight> to view progress and keep SubWallet open until the transaction is completed')}
+                  />
+                )}
                 key={p}
                 title={'Do not close SubWallet!'}
                 type={'warning'}
@@ -63,9 +85,19 @@ export const MainWrapper = styled(Component)<ThemeProps>(({ theme: { token } }: 
     marginBottom: 34
   },
 
+  '.transaction-process-warning-item + .transaction-process-warning-item': {
+    marginTop: token.marginSM
+  },
+
   '.transaction-process-warning-item': {
     border: '1px solid',
-    borderColor: token.colorWarning
+    borderColor: token.colorWarning,
+
+    '.link': {
+      color: token.colorLink,
+      textDecoration: 'underline',
+      cursor: 'pointer'
+    }
   },
 
   '.main-layout-content': {

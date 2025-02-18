@@ -1,11 +1,12 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { ProcessTransactionData, ResponseSubscribeProcessById, StepStatus } from '@subwallet/extension-base/types';
+import { ProcessTransactionData, ResponseSubscribeProcessById } from '@subwallet/extension-base/types';
 import { CloseIcon, Layout, PageWrapper } from '@subwallet/extension-koni-ui/components';
 import { useDefaultNavigate } from '@subwallet/extension-koni-ui/hooks';
 import { cancelSubscription, subscribeProcess } from '@subwallet/extension-koni-ui/messaging';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
+import { isStepCompleted, isStepFailed } from '@subwallet/extension-koni-ui/utils';
 import { PageIcon } from '@subwallet/react-ui';
 import { SwIconProps } from '@subwallet/react-ui/es/icon';
 import CN from 'classnames';
@@ -48,15 +49,15 @@ const Component: React.FC<Props> = (props: Props) => {
   );
 
   const isFinal = useMemo(() => {
-    return processData?.status === StepStatus.FAILED || processData?.status === StepStatus.COMPLETE;
+    return isStepCompleted(processData?.status) || isStepFailed(processData?.status);
   }, [processData]);
 
   const icon = useMemo<SwIconProps['phosphorIcon']>(() => {
-    if (processData?.status === StepStatus.COMPLETE) {
+    if (isStepCompleted(processData?.status)) {
       return CheckCircle;
     }
 
-    if (processData?.status === StepStatus.FAILED) {
+    if (isStepFailed(processData?.status)) {
       return ProhibitInset;
     }
 
@@ -96,9 +97,9 @@ const Component: React.FC<Props> = (props: Props) => {
 
   return (
     <PageWrapper className={CN(className, {
-      '-processing': !processData || ![StepStatus.COMPLETE, StepStatus.FAILED].includes(processData.status),
-      '-complete': processData?.status === StepStatus.COMPLETE,
-      '-failed': processData?.status === StepStatus.FAILED
+      '-processing': !processData || !isFinal,
+      '-complete': isStepCompleted(processData?.status),
+      '-failed': isStepFailed(processData?.status)
     })}
     >
       <Layout.WithSubHeaderOnly

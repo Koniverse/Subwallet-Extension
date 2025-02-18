@@ -3,6 +3,7 @@
 
 import { BaseStepType, CommonStepType, ProcessStep, ProcessTransactionData, StepStatus, SwapStepType, YieldStepType } from '@subwallet/extension-base/types';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
+import { isStepCompleted, isStepFailed, isStepProcessing } from '@subwallet/extension-koni-ui/utils';
 import { Icon } from '@subwallet/react-ui';
 import { SwIconProps } from '@subwallet/react-ui/es/icon';
 import CN from 'classnames';
@@ -21,12 +22,12 @@ const Component: FC<Props> = (props: Props) => {
 
   const iconProp = useMemo<SwIconProps>(() => {
     const iconInfo: SwIconProps = (() => {
-      if (processData.status === StepStatus.COMPLETE) {
+      if (isStepCompleted(processData.status)) {
         return {
           phosphorIcon: CheckCircle,
           weight: 'fill'
         };
-      } else if (processData.status === StepStatus.FAILED) {
+      } else if (isStepFailed(processData.status)) {
         return {
           phosphorIcon: ProhibitInset,
           weight: 'fill'
@@ -45,27 +46,27 @@ const Component: FC<Props> = (props: Props) => {
   }, [processData.status]);
 
   const currentStep: ProcessStep | undefined = useMemo(() => {
-    const first = processData.steps.find((s) => s.status === StepStatus.PROCESSING);
+    const first = processData.steps.find((s) => s.id === processData.currentStepId);
 
     if (first) {
       return first;
     }
 
-    const second = processData.steps.slice().reverse().find((s) => [StepStatus.COMPLETE, StepStatus.FAILED].includes(s.status));
+    const second = processData.steps.slice().reverse().find((s) => [StepStatus.COMPLETE, StepStatus.FAILED, StepStatus.TIMEOUT, StepStatus.CANCELLED].includes(s.status));
 
     if (second) {
       return second;
     }
 
     return processData.steps[0];
-  }, [processData.steps]);
+  }, [processData.currentStepId, processData.steps]);
 
   const title = useMemo(() => {
-    if (processData.status === StepStatus.COMPLETE) {
+    if (isStepCompleted(processData.status)) {
       return t('Success');
     }
 
-    if (processData.status === StepStatus.FAILED) {
+    if (isStepFailed(processData.status)) {
       return t('Failed');
     }
 
@@ -118,9 +119,9 @@ const Component: FC<Props> = (props: Props) => {
   return (
     <div
       className={CN(className, {
-        '-processing': ![StepStatus.COMPLETE, StepStatus.FAILED].includes(processData.status),
-        '-complete': processData.status === StepStatus.COMPLETE,
-        '-failed': processData.status === StepStatus.FAILED
+        '-processing': isStepProcessing(processData.status),
+        '-complete': isStepCompleted(processData.status),
+        '-failed': isStepFailed(processData.status)
       })}
     >
       <Icon
@@ -173,8 +174,7 @@ export const CurrentProcessStep = styled(Component)<Props>(({ theme: { token } }
     },
 
     '&.-processing': {
-      color: token.colorWarning
-
+      color: '#D9A33E'
     },
 
     '&.-complete': {

@@ -3,6 +3,7 @@
 
 import { StepStatus } from '@subwallet/extension-base/types';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
+import { isStepCompleted, isStepFailed, isStepPending, isStepProcessing } from '@subwallet/extension-koni-ui/utils';
 import { Icon } from '@subwallet/react-ui';
 import { SwIconProps } from '@subwallet/react-ui/es/icon';
 import CN from 'classnames';
@@ -24,17 +25,17 @@ const Component: FC<Props> = (props: Props) => {
 
   const iconProp = useMemo<SwIconProps>(() => {
     const iconInfo: SwIconProps = (() => {
-      if (status === StepStatus.COMPLETE) {
+      if (isStepCompleted(status)) {
         return {
           phosphorIcon: CheckCircle,
           weight: 'fill'
         };
-      } else if (status === StepStatus.FAILED) {
+      } else if (isStepFailed(status)) {
         return {
           phosphorIcon: ProhibitInset,
           weight: 'fill'
         };
-      } else if (status === 'PROCESSING') {
+      } else if (isStepProcessing(status)) {
         return {
           phosphorIcon: SpinnerGap,
           weight: 'fill'
@@ -66,10 +67,10 @@ const Component: FC<Props> = (props: Props) => {
       })}
     >
       <div className={CN('__item-left-part', {
-        '-pending': [StepStatus.QUEUED, StepStatus.PREPARE].includes(status),
-        '-processing': status === StepStatus.PROCESSING,
-        '-complete': status === StepStatus.COMPLETE,
-        '-failed': status === StepStatus.FAILED
+        '-pending': isStepPending(status),
+        '-processing': isStepProcessing(status),
+        '-complete': isStepCompleted(status),
+        '-failed': isStepFailed(status)
       })}
       >
         <Icon
