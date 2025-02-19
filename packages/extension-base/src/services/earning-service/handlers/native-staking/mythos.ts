@@ -1,15 +1,16 @@
 // Copyright 2019-2022 @subwallet/extension-base
 // SPDX-License-Identifier: Apache-2.0
 
+import { _ChainInfo } from '@subwallet/chain-list/types';
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
-import { ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
+import { ExtrinsicType, NominationInfo } from '@subwallet/extension-base/background/KoniTypes';
 import { getCommission } from '@subwallet/extension-base/koni/api/staking/bonding/utils';
 import { _STAKING_ERA_LENGTH_MAP } from '@subwallet/extension-base/services/chain-service/constants';
+import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import BaseParaStakingPoolHandler from '@subwallet/extension-base/services/earning-service/handlers/native-staking/base-para';
 import { BasicTxErrorType, EarningStatus, NativeYieldPoolInfo, SubmitJoinNativeStaking, TransactionData, UnstakingInfo, ValidatorInfo, YieldPoolInfo, YieldPositionInfo, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
 import { balanceFormatter, formatNumber, reformatAddress } from '@subwallet/extension-base/utils';
 
-import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { UnsubscribePromise } from '@polkadot/api-base/types/base';
 import { Codec } from '@polkadot/types/types';
 
@@ -30,7 +31,7 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
 
   async subscribePoolInfo (callback: (data: YieldPoolInfo) => void): Promise<VoidFunction> {
     let cancel = false;
-    const chainApi = this.substrateApi;
+    const substrateApi = this.substrateApi;
     const nativeToken = this.nativeToken;
 
     const defaultCallback = async () => {
@@ -58,9 +59,9 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
 
     await defaultCallback();
 
-    await chainApi.isReady;
+    await substrateApi.isReady;
 
-    const unsub = await (chainApi.api.query.collatorStaking.currentSession(async (_session: Codec) => {
+    const unsub = await (substrateApi.api.query.collatorStaking.currentSession(async (_session: Codec) => {
       if (cancel) {
         unsub();
 
@@ -68,14 +69,14 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
       }
 
       const currentSession = _session.toString();
-      const maxStakers = chainApi.api.consts.collatorStaking.maxStakers.toString();
-      const unstakeDelay = chainApi.api.consts.collatorStaking.stakeUnlockDelay.toString();
-      const maxStakedCandidates = chainApi.api.consts.collatorStaking.maxStakedCandidates.toString();
+      const maxStakers = substrateApi.api.consts.collatorStaking.maxStakers.toString();
+      const unstakeDelay = substrateApi.api.consts.collatorStaking.stakeUnlockDelay.toString();
+      const maxStakedCandidates = substrateApi.api.consts.collatorStaking.maxStakedCandidates.toString();
       const sessionTime = _STAKING_ERA_LENGTH_MAP[this.chain] || _STAKING_ERA_LENGTH_MAP.default; // in hours
       const unstakingPeriod = parseInt(unstakeDelay) * sessionTime;
 
       const _minStake = await Promise.all([
-        chainApi.api.query.collatorStaking.minStake()
+        substrateApi.api.query.collatorStaking.minStake()
       ]);
 
       const minStake = _minStake.toString();
@@ -172,15 +173,15 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
   /* Get pool targets */
 
   async getPoolTargets (): Promise<ValidatorInfo[]> {
-    const chainApi = await this.substrateApi.isReady;
+    const substrateApi = await this.substrateApi.isReady;
 
     const [_allCollators, _minStake, _commission] = await Promise.all([
-      chainApi.api.query.collatorStaking.candidates.entries(),
-      chainApi.api.query.collatorStaking.minStake(),
-      chainApi.api.query.collatorStaking.collatorRewardPercentage()
+      substrateApi.api.query.collatorStaking.candidates.entries(),
+      substrateApi.api.query.collatorStaking.minStake(),
+      substrateApi.api.query.collatorStaking.collatorRewardPercentage()
     ]);
 
-    const maxStakersPerCollator = chainApi.api.consts.collatorStaking.maxStakers.toPrimitive() as number;
+    const maxStakersPerCollator = substrateApi.api.consts.collatorStaking.maxStakers.toPrimitive() as number;
 
     return _allCollators.map((_collator) => {
       const collatorAddress = _collator[0].toString();
@@ -212,60 +213,79 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
 
   async createJoinExtrinsic (data: SubmitJoinNativeStaking, positionInfo?: YieldPositionInfo): Promise<[TransactionData, YieldTokenBaseInfo]> {
     const apiPromise = await this.substrateApi.isReady;
-    const { address, amount, selectedValidators } = data;
-
-    let lockTx: SubmittableExtrinsic<'promise'> | undefined;
-    let stakeTx: SubmittableExtrinsic<'promise'> | undefined;
-
+    const { amount, selectedValidators } = data;
     const selectedValidatorInfo = selectedValidators[0];
 
-    const compoundTransactions = (bondTx: SubmittableExtrinsic<'promise'>, nominateTx: SubmittableExtrinsic<'promise'>): [TransactionData, YieldTokenBaseInfo] => {
-      const extrinsic = apiPromise.api.tx.utility.batchAll([bondTx, nominateTx]);
-
-      return [extrinsic, { slug: this.nativeToken.slug, amount: '0' }];
-    };
-
-    const _accountFreezes = await apiPromise.api.query.balances.freezes(address);
-    const accountFreezes = _accountFreezes.toPrimitive() as unknown as FrameSupportTokensMiscIdAmountRuntimeFreezeReason[];
-    const accountLocking = accountFreezes.filter((accountFreeze) => accountFreeze.id.CollatorStaking === 'Staking');
-
-    if (!accountLocking || !accountLocking.length) {
-      lockTx = apiPromise.api.tx.collatorStaking.lock(amount);
-      stakeTx = apiPromise.api.tx.collatorStaking.stake([{
+    const tx = apiPromise.api.tx.utility.batchAll([
+      apiPromise.api.tx.collatorStaking.lock(amount),
+      apiPromise.api.tx.collatorStaking.stake([{
         candidate: selectedValidatorInfo.address,
         stake: amount
-      }]);
-    } else {
-      const bnTotalLocking = accountLocking.reduce((old, currentLockAmount) => {
-        const bnCurrentLockAmount = BigInt(currentLockAmount.amount);
+      }])
+    ]);
 
-        return old + bnCurrentLockAmount;
-      }, BigInt(0));
-
-      const lockAmount = (BigInt(amount) - bnTotalLocking).toString();
-
-      lockTx = apiPromise.api.tx.collatorStaking.lock(lockAmount);
-      stakeTx = apiPromise.api.tx.collatorStaking.stake([{
-        candidate: selectedValidatorInfo.address,
-        stake: amount
-      }]);
-    }
-
-    return compoundTransactions(lockTx, stakeTx);
+    return [tx, { slug: this.nativeToken.slug, amount: '0' }];
   }
+
+  // todo: improve in this way
+  // async createJoinExtrinsic (data: SubmitJoinNativeStaking, positionInfo?: YieldPositionInfo): Promise<[TransactionData, YieldTokenBaseInfo]> {
+  //   // todo: review lock in freezes
+  //   const apiPromise = await this.substrateApi.isReady;
+  //   const { address, amount, selectedValidators } = data;
+  //
+  //   let lockTx: SubmittableExtrinsic<'promise'> | undefined;
+  //   let stakeTx: SubmittableExtrinsic<'promise'> | undefined;
+  //
+  //   const selectedValidatorInfo = selectedValidators[0];
+  //
+  //   const compoundTransactions = (bondTx: SubmittableExtrinsic<'promise'>, nominateTx: SubmittableExtrinsic<'promise'>): [TransactionData, YieldTokenBaseInfo] => {
+  //     const extrinsic = apiPromise.api.tx.utility.batchAll([bondTx, nominateTx]);
+  //
+  //     return [extrinsic, { slug: this.nativeToken.slug, amount: '0' }];
+  //   };
+  //
+  //   const _accountFreezes = await apiPromise.api.query.balances.freezes(address);
+  //   const accountFreezes = _accountFreezes.toPrimitive() as unknown as FrameSupportTokensMiscIdAmountRuntimeFreezeReason[];
+  //   const accountLocking = accountFreezes.filter((accountFreeze) => accountFreeze.id.CollatorStaking === 'Staking');
+  //
+  //   if (!accountLocking || !accountLocking.length) {
+  //     lockTx = apiPromise.api.tx.collatorStaking.lock(amount);
+  //     stakeTx = apiPromise.api.tx.collatorStaking.stake([{
+  //       candidate: selectedValidatorInfo.address,
+  //       stake: amount
+  //     }]);
+  //   } else {
+  //     const bnTotalLocking = accountLocking.reduce((old, currentLockAmount) => {
+  //       const bnCurrentLockAmount = BigInt(currentLockAmount.amount);
+  //
+  //       return old + bnCurrentLockAmount;
+  //     }, BigInt(0));
+  //
+  //     const lockAmount = (BigInt(amount) - bnTotalLocking).toString();
+  //
+  //     lockTx = apiPromise.api.tx.collatorStaking.lock(lockAmount);
+  //     stakeTx = apiPromise.api.tx.collatorStaking.stake([{
+  //       candidate: selectedValidatorInfo.address,
+  //       stake: amount
+  //     }]);
+  //   }
+  //
+  //   return compoundTransactions(lockTx, stakeTx);
+  // }
 
   /* Join pool action */
 
   /* Leave pool action */
 
   async handleYieldUnstake (amount: string, address: string, selectedTarget?: string): Promise<[ExtrinsicType, TransactionData]> {
-    const apiPromise = await this.substrateApi.isReady;
+    const substrateApi = await this.substrateApi.isReady;
     const extrinsicList = [
-      apiPromise.api.tx.collatorStaking.unstakeFrom(selectedTarget),
-      apiPromise.api.tx.collatorStaking.unlock(amount) // todo: can disable amount to unlock all
+      substrateApi.api.tx.collatorStaking.claimRewards(),
+      substrateApi.api.tx.collatorStaking.unstakeFrom(selectedTarget),
+      substrateApi.api.tx.collatorStaking.unlock(amount) // todo: can disable amount to unlock all
     ];
 
-    return [ExtrinsicType.STAKING_UNBOND, apiPromise.api.tx.utility.batch(extrinsicList)];
+    return [ExtrinsicType.STAKING_UNBOND, substrateApi.api.tx.utility.batch(extrinsicList)];
   }
 
   /* Leave pool action */
@@ -283,5 +303,10 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
     return apiPromise.api.tx.collatorStaking.release();
   }
 
+  override async handleYieldClaimReward (address: string, bondReward?: boolean) {
+    const substrateApi = await this.substrateApi.isReady;
+
+    return substrateApi.api.tx.collatorStaking.claimRewards();
+  }
   /* Other action */
 }
