@@ -6,7 +6,7 @@ import { EvmEIP1559FeeOption, FeeCustom, FeeDefaultOption, FeeDetail, FeeOptionK
 import { BN_ZERO, formatNumber } from '@subwallet/extension-base/utils';
 import { AmountInput, BasicInputEvent, RadioGroup } from '@subwallet/extension-koni-ui/components';
 import { FeeOptionItem } from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/FeeOptionItem';
-import { BN_TEN, ASSET_HUB_CHAIN_SLUGS, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
+import { ASSET_HUB_CHAIN_SLUGS, BN_TEN, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { FormCallbacks, ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Button, Form, Icon, Logo, ModalContext, Number, SwModal } from '@subwallet/react-ui';
 import { Rule } from '@subwallet/react-ui/es/form';
@@ -55,7 +55,7 @@ const OPTIONS: FeeDefaultOption[] = [
   'fast'
 ];
 
-const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOptionsInfo, feeType, listTokensCanPayFee, modalId, onSelectOption, onSetTokenPayFee, priceValue, selectedFeeOption, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
+const Component = ({ chainValue, className, decimals, feeOptionsInfo, feeType, modalId, onSelectOption, priceValue, selectedFeeOption, symbol, tokenSlug }: Props): React.ReactElement<Props> => {
   const { t } = useTranslation();
   const { activeModal, inactiveModal } = useContext(ModalContext);
 
@@ -90,6 +90,8 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
       priorityFeeValue: feeDefaultValue?.maxPriorityFeePerGas
     };
   }, [feeDefaultValue?.maxFeePerGas, feeDefaultValue?.maxPriorityFeePerGas]);
+
+  const maxFeePerGas = Form.useWatch('maxFeeValue', form);
 
   const viewOptions = useMemo((): ViewOption[] => {
     return [
@@ -239,14 +241,14 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
   }, [activeModal]);
 
   const convertedCustomEvmFee = useMemo(() => {
-    const maxFeeValue = form.getFieldValue('maxFeeValue') as string || feeDefaultValue?.maxFeePerGas;
+    const maxFeeValue = maxFeePerGas || feeDefaultValue?.maxFeePerGas;
 
     if (maxFeeValue && feeOptionsInfo && 'gasLimit' in feeOptionsInfo) {
       return new BigN(maxFeeValue).multipliedBy(feeOptionsInfo.gasLimit);
     }
 
     return BN_ZERO;
-  }, [feeDefaultValue?.maxFeePerGas, feeOptionsInfo, form]);
+  }, [feeDefaultValue?.maxFeePerGas, feeOptionsInfo, maxFeePerGas]);
 
   const convertedCustomEvmFeeToUSD = useMemo(() => {
     return convertedCustomEvmFee.multipliedBy(priceValue).dividedBy(BN_TEN.pow(decimals));
