@@ -199,7 +199,7 @@ const Component: React.FC<Props> = ({ className }: Props) => {
   const hasSearchValue = !!searchValue;
 
   const showAllAccount = useMemo(() => {
-    return shouldShowAllAccount(accountProxies, hasSearchValue)
+    return !hasSearchValue && shouldShowAllAccount(accountProxies);
   }, [hasSearchValue, accountProxies]);
 
   const onSelect = useCallback((accountProxy: AccountProxy) => {
