@@ -17,7 +17,7 @@ import { KeyringService } from '@subwallet/extension-base/services/keyring-servi
 import DatabaseService from '@subwallet/extension-base/services/storage-service/DatabaseService';
 import { ProcessTransactionData, ProcessType, SummaryEarningProcessData, SwapBaseTxData, YieldPoolType } from '@subwallet/extension-base/types';
 import { GetNotificationParams, RequestSwitchStatusParams } from '@subwallet/extension-base/types/notification';
-import { categoryAddresses, formatNumber } from '@subwallet/extension-base/utils';
+import { categoryAddresses, formatNumber, reformatAddress } from '@subwallet/extension-base/utils';
 import { isSubstrateAddress } from '@subwallet/keyring';
 
 export class InappNotificationService implements CronServiceInterface {
@@ -454,7 +454,7 @@ export class InappNotificationService implements CronServiceInterface {
 
     const notification: _BaseNotificationInfo = {
       id: `${actionType}___${_id}___${timestamp}`,
-      address: address,
+      address: reformatAddress(address),
       title,
       actionType,
       metadata: {

@@ -3370,7 +3370,7 @@ export default class KoniExtension {
 
         await this.#koniState.transactionService.createProcessIfNeed({
           id: processId,
-          address: address,
+          address: reformatAddress(address),
           type: ProcessType.EARNING,
           combineInfo,
           currentStepId: step.stepId,
@@ -3887,7 +3887,7 @@ export default class KoniExtension {
 
         await this.#koniState.transactionService.createProcessIfNeed({
           id: processId,
-          address: address,
+          address: reformatAddress(address),
           type: ProcessType.SWAP,
           currentStepId: step.stepId,
           combineInfo,
