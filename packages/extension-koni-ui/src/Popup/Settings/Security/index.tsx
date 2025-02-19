@@ -543,13 +543,13 @@ const SecurityList = styled(Component)<Props>(({ theme: { token } }: Props) => {
 
       },
       '.__item-title': {
-        fontsize: token.fontSizeHeading5,
+        fontSize: token.fontSizeHeading5,
         lineHeight: token.lineHeightHeading5,
         fontWeight: token.headingFontWeight,
         color: token.colorTextLight1
       },
       '.__item-description': {
-        fontsize: token.fontSizeSM,
+        fontSize: token.fontSizeSM,
         lineHeight: token.lineHeightSM,
         color: token.colorTextLight3
       },
