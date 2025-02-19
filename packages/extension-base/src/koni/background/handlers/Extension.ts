@@ -32,7 +32,8 @@ import { isBounceableAddress } from '@subwallet/extension-base/services/balance-
 import { getERC20TransactionObject, getERC721Transaction, getEVMTransactionObject, getPSP34TransferExtrinsic } from '@subwallet/extension-base/services/balance-service/transfer/smart-contract';
 import { createTransferExtrinsic, getTransferMockTxFee } from '@subwallet/extension-base/services/balance-service/transfer/token';
 import { createTonTransaction } from '@subwallet/extension-base/services/balance-service/transfer/ton-transfer';
-import { createAvailBridgeExtrinsicFromAvail, createAvailBridgeTxFromEth, createPolygonBridgeExtrinsic, createSnowBridgeExtrinsic, createXcmExtrinsic, CreateXcmExtrinsicProps, FunctionCreateXcmExtrinsic, getXcmMockTxFee } from '@subwallet/extension-base/services/balance-service/transfer/xcm';
+import { createAcrossBridgeExtrinsic, createAvailBridgeExtrinsicFromAvail, createAvailBridgeTxFromEth, createPolygonBridgeExtrinsic, createSnowBridgeExtrinsic, createXcmExtrinsic, CreateXcmExtrinsicProps, FunctionCreateXcmExtrinsic, getXcmMockTxFee } from '@subwallet/extension-base/services/balance-service/transfer/xcm';
+import { _isAcrossChainBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/acrossBridge/acrossBridge';
 import { getClaimTxOnAvail, getClaimTxOnEthereum, isAvailChainBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/availBridge';
 import { _isPolygonChainBridge, getClaimPolygonBridge, isClaimedPolygonBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/polygonBridge';
 import { _isPosChainBridge, getClaimPosBridge } from '@subwallet/extension-base/services/balance-service/transfer/xcm/posBridge';
@@ -1459,12 +1460,14 @@ export default class KoniExtension {
       return this.#koniState.transactionService.generateBeforeHandleResponseErrors(errors);
     }
 
+    console.log('originNetworkey', [originNetworkKey, destinationNetworkKey]);
     const chainInfoMap = this.#koniState.getChainInfoMap();
     const isAvailBridgeFromEvm = _isPureEvmChain(chainInfoMap[originNetworkKey]) && isAvailChainBridge(destinationNetworkKey);
     const isAvailBridgeFromAvail = isAvailChainBridge(originNetworkKey) && _isPureEvmChain(chainInfoMap[destinationNetworkKey]);
     const isSnowBridgeEvmTransfer = _isPureEvmChain(chainInfoMap[originNetworkKey]) && _isSnowBridgeXcm(chainInfoMap[originNetworkKey], chainInfoMap[destinationNetworkKey]) && !isAvailBridgeFromEvm;
     const isPolygonBridgeTransfer = _isPolygonChainBridge(originNetworkKey, destinationNetworkKey);
     const isPosBridgeTransfer = _isPosChainBridge(originNetworkKey, destinationNetworkKey);
+    const _isAcrossBridge = _isAcrossChainBridge(originNetworkKey, destinationNetworkKey);
 
     let additionalValidator: undefined | ((inputTransaction: SWTransactionResponse) => Promise<void>);
     let eventsHandler: undefined | ((eventEmitter: TransactionEmitter) => void);
@@ -1493,6 +1496,8 @@ export default class KoniExtension {
         funcCreateExtrinsic = createAvailBridgeTxFromEth;
       } else if (isAvailBridgeFromAvail) {
         funcCreateExtrinsic = createAvailBridgeExtrinsicFromAvail;
+      } else if (_isAcrossBridge) {
+        funcCreateExtrinsic = createAcrossBridgeExtrinsic;
       } else {
         funcCreateExtrinsic = createXcmExtrinsic;
       }

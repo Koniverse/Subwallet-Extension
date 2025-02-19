@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { _ChainAsset, _ChainInfo } from '@subwallet/chain-list/types';
-import { _isPolygonBridgeXcm, _isPosBridgeXcm, _isSnowBridgeXcm } from '@subwallet/extension-base/core/substrate/xcm-parser';
+import { _isAcrossBridgeXcm, _isPolygonBridgeXcm, _isPosBridgeXcm, _isSnowBridgeXcm } from '@subwallet/extension-base/core/substrate/xcm-parser';
 import { getAvailBridgeExtrinsicFromAvail, getAvailBridgeTxFromEth } from '@subwallet/extension-base/services/balance-service/transfer/xcm/availBridge';
 import { getExtrinsicByPolkadotXcmPallet } from '@subwallet/extension-base/services/balance-service/transfer/xcm/polkadotXcm';
 import { _createPolygonBridgeL1toL2Extrinsic, _createPolygonBridgeL2toL1Extrinsic } from '@subwallet/extension-base/services/balance-service/transfer/xcm/polygonBridge';
@@ -19,6 +19,7 @@ import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { u8aToHex } from '@polkadot/util';
 import { addressToEvm } from '@polkadot/util-crypto';
 
+import { _createAcrossBridgeExtrinsic } from './acrossBridge/acrossBridge';
 import { _createPosBridgeL1toL2Extrinsic, _createPosBridgeL2toL1Extrinsic, _isPosChainBridge } from './posBridge';
 
 export type CreateXcmExtrinsicProps = {
@@ -151,6 +152,36 @@ export const createPolygonBridgeExtrinsic = async ({ chainInfoMap,
       : _createPosBridgeL1toL2Extrinsic;
 
   return createExtrinsic(originTokenInfo, originChainInfo, sender, recipient, sendingValue, evmApi);
+};
+
+export const createAcrossBridgeExtrinsic = async ({ chainInfoMap,
+  destinationTokenInfo,
+  evmApi,
+  originTokenInfo,
+  recipient,
+  sender,
+  sendingValue }: CreateXcmExtrinsicProps): Promise<TransactionConfig> => {
+  const originChainInfo = chainInfoMap[originTokenInfo.originChain];
+  const destinationChainInfo = chainInfoMap[destinationTokenInfo.originChain];
+  const isValidBridge = _isAcrossBridgeXcm(originChainInfo, destinationChainInfo);
+
+  console.log('Hmm', destinationTokenInfo, originChainInfo);
+
+  if (!isValidBridge) {
+    throw new Error('This is not a valid PolygonBridge transfer');
+  }
+
+  if (!evmApi) {
+    throw Error('Evm API is not available');
+  }
+
+  if (!sender) {
+    throw Error('Sender is required');
+  }
+
+  const createExtrinsic = _createAcrossBridgeExtrinsic;
+
+  return createExtrinsic(originTokenInfo, destinationTokenInfo, originChainInfo, destinationChainInfo, sender, recipient, sendingValue, evmApi);
 };
 
 export const getXcmMockTxFee = async (substrateApi: _SubstrateApi, chainInfoMap: Record<string, _ChainInfo>, originTokenInfo: _ChainAsset, destinationTokenInfo: _ChainAsset): Promise<BigN> => {
