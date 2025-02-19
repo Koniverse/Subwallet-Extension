@@ -390,37 +390,39 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
     activeModal(SWAP_CHOOSE_FEE_TOKEN_MODAL);
   }, [activeModal]);
 
-  const onSelectQuote = useCallback(async (quote: SwapQuote) => {
+  const onSelectQuote = useCallback((quote: SwapQuote) => {
     setCurrentQuote(quote);
-    const currentRequest: SwapRequest = {
-      address: fromValue,
-      pair: quote.pair,
-      fromAmount: quote.fromAmount,
-      slippage: currentSlippage.slippage.toNumber(),
-      recipient: recipientValue || undefined,
-      currentQuote: quote.provider
-    };
+    (async () => {
+      try {
+        const currentRequest: SwapRequest = {
+          address: fromValue,
+          pair: quote.pair,
+          fromAmount: quote.fromAmount,
+          slippage: currentSlippage.slippage.toNumber(),
+          recipient: recipientValue || undefined,
+          currentQuote: quote.provider
+        };
 
-    const optimalRequest = {
-      request: currentRequest,
-      selectedQuote: quote
-    };
+        const optimalRequest = {
+          request: currentRequest,
+          selectedQuote: quote
+        };
 
-    try {
-      const processResult = await generateOptimalProcess(optimalRequest);
+        const processResult = await generateOptimalProcess(optimalRequest);
 
-      setOptimalSwapPath(processResult);
+        setOptimalSwapPath(processResult);
 
-      dispatchProcessState({
-        payload: {
-          steps: processResult.steps,
-          feeStructure: processResult.totalFee
-        },
-        type: CommonActionType.STEP_CREATE
-      });
-    } catch (error) {
-      console.error('generate Optimal Process failed:', error);
-    }
+        dispatchProcessState({
+          payload: {
+            steps: processResult.steps,
+            feeStructure: processResult.totalFee
+          },
+          type: CommonActionType.STEP_CREATE
+        });
+      } catch (error) {
+        console.error('generate Optimal Process failed:', error);
+      }
+    })().catch((e) => console.error(e));
 
     setFeeOptions(quote.feeInfo.feeOptions);
     setCurrentFeeOption(quote.feeInfo.feeOptions?.[0]);
@@ -1002,7 +1004,6 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
             recipient: recipientValue || undefined
           };
 
-          console.log('currentRequest', currentRequest);
           handleSwapRequest(currentRequest).then((result) => {
             if (sync) {
               setCurrentQuoteRequest(currentRequest);
