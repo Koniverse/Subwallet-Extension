@@ -130,12 +130,11 @@ const Search = styled(Component)<Props>(({ theme: { token } }: Props) => {
       justifySelf: 'end',
       display: 'flex',
       alignItems: 'center',
-      gap: token.sizeXS,
-      width: '100%'
+      gap: token.sizeXS
     },
 
     '.search-input': {
-      width: '100%',
+      width: 360,
       height: 48
     }
   };

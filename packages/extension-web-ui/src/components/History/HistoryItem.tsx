@@ -4,6 +4,7 @@
 import { _ChainInfo } from '@subwallet/chain-list/types';
 import { ExtrinsicType, TransactionAdditionalInfo, TransactionDirection } from '@subwallet/extension-base/background/KoniTypes';
 import { getExplorerLink } from '@subwallet/extension-base/services/transaction-service/utils';
+import { AccountProxyAvatar } from '@subwallet/extension-web-ui/components';
 import { HistoryStatusMap } from '@subwallet/extension-web-ui/constants';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
 import { useSelector } from '@subwallet/extension-web-ui/hooks';
@@ -12,7 +13,6 @@ import { RootState } from '@subwallet/extension-web-ui/stores';
 import { ThemeProps, TransactionHistoryDisplayItem } from '@subwallet/extension-web-ui/types';
 import { customFormatDate, isAbleToShowFee, openInNewTab, toShort } from '@subwallet/extension-web-ui/utils';
 import { Button, Icon, Logo, Number, Tag, Typography, Web3Block } from '@subwallet/react-ui';
-import SwAvatar from '@subwallet/react-ui/es/sw-avatar';
 import CN from 'classnames';
 import { ArrowSquareOut, CaretRight } from 'phosphor-react';
 import React, { SyntheticEvent, useCallback, useContext, useMemo } from 'react';
@@ -145,7 +145,8 @@ function Component (
       onClick={onClick}
     >
       <div className='account-wrapper'>
-        <SwAvatar
+        <AccountProxyAvatar
+          className={'__account-avatar'}
           size={30}
           value={item.address}
         />

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ExtrinsicType, TransactionAdditionalInfo } from '@subwallet/extension-base/background/KoniTypes';
-import { getChainflipExplorerLink, getExplorerLink, getTransakOrderLink, getSimpleSwapExplorerLink } from '@subwallet/extension-base/services/transaction-service/utils';
+import { getChainflipExplorerLink, getExplorerLink, getSimpleSwapExplorerLink, getTransakOrderLink } from '@subwallet/extension-base/services/transaction-service/utils';
 import { ChainflipSwapTxData, SimpleSwapTxData, SwapProviderId, SwapTxData } from '@subwallet/extension-base/types/swap';
 import { InfoItemBase } from '@subwallet/extension-web-ui/components';
 import { BaseModal } from '@subwallet/extension-web-ui/components/Modal/BaseModal';
@@ -66,8 +66,8 @@ function Component ({ className = '', data, onCancel }: Props): React.ReactEleme
         link = getChainflipExplorerLink(additionalInfo as ChainflipSwapTxData, originChainInfo);
       }
 
-      if([SwapProviderId.SIMPLE_SWAP].includes(additionalInfo.provider.id)){
-        link = getSimpleSwapExplorerLink(additionalInfo as SimpleSwapTxData)
+      if ([SwapProviderId.SIMPLE_SWAP].includes(additionalInfo.provider.id)) {
+        link = getSimpleSwapExplorerLink(additionalInfo as SimpleSwapTxData);
       }
     }
 

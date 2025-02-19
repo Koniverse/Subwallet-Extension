@@ -200,6 +200,7 @@ function Component ({ className = '', items, modalId, onBack, onCancel, onSelect
         onSearch={handleSearch}
         placeholder={t<string>('Enter your account name or address')}
         searchValue={searchValue}
+        simpleLayout={true}
       />
       <SwList
         className={'__list-container'}
