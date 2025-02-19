@@ -69,8 +69,9 @@ function Component ({ className }: Props): React.ReactElement<Props> {
 
   const currentAccountProxy = useSelector((state) => state.accountState.currentAccountProxy);
   const { tokens } = useSelector((state) => state.buyService);
-  const [sendFundKey, setSendFundKey] = useState<string>('sendFundKey');
-  const [buyTokensKey, setBuyTokensKey] = useState<string>('buyTokensKey');
+  const [isSendFundVisible, setIsSendFundVisible] = useState<boolean>(false);
+  const [isSendFundOffRampVisible, setIsSendFundOffRampVisible] = useState<boolean>(false);
+  const [isBuyTokensVisible, setIsBuyTokensVisible] = useState<boolean>(false);
   const [buyTokenSymbol, setBuyTokenSymbol] = useState<string>('');
   const notify = useNotification();
 
@@ -116,6 +117,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
     setBuyTokenSymbol(symbol);
 
     activeModal(BUY_TOKEN_MODAL);
+    setIsBuyTokensVisible(true);
   }, [activeModal, buyInfos]);
 
   useEffect(() => {
@@ -142,6 +144,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
       fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy),
       defaultSlug: tokenGroupSlug || ''
     });
+    setIsSendFundVisible(true);
     activeModal(TRANSACTION_TRANSFER_MODAL);
   },
   [currentAccountProxy, setStorage, tokenGroupSlug, activeModal, notify, t]
@@ -152,16 +155,12 @@ function Component ({ className }: Props): React.ReactElement<Props> {
 
   useEffect(() => {
     if (onOpen === 'true') {
+      setIsSendFundOffRampVisible(true);
       activeModal(OFF_RAMP_TRANSACTION_TRANSFER_MODAL);
       searchParams.delete('onOpen');
       setSearchParams(searchParams);
     }
   }, [onOpen, activeModal, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    setSendFundKey(`sendFundKey-${Date.now()}`);
-    setBuyTokensKey(`buyTokensKey-${Date.now()}`);
-  }, [locationPathname]);
 
   useEffect(() => {
     const backgroundColor = isTotalBalanceDecrease ? BackgroundColorMap.DECREASE : BackgroundColorMap.INCREASE;
@@ -171,17 +170,18 @@ function Component ({ className }: Props): React.ReactElement<Props> {
 
   const handleCancelTransfer = useCallback(() => {
     inactiveModal(TRANSACTION_TRANSFER_MODAL);
-    setSendFundKey(`sendFundKey-${Date.now()}`);
+    setIsSendFundVisible(false);
   }, [inactiveModal]);
 
   const handleCancelBuy = useCallback(() => {
     inactiveModal(BUY_TOKEN_MODAL);
-    setBuyTokensKey(`buyTokensKey-${Date.now()}`);
+    setIsBuyTokensVisible(false);
   }, [inactiveModal]);
 
   const handleCancelSell = useCallback(() => {
     removeStorage(OFF_RAMP_DATA);
     inactiveModal(OFF_RAMP_TRANSACTION_TRANSFER_MODAL);
+    setIsSendFundOffRampVisible(false);
   }, [inactiveModal]);
 
   const isSupportBuyTokens = useMemo(() => {
@@ -399,55 +399,64 @@ function Component ({ className }: Props): React.ReactElement<Props> {
         </div>
       </div>
 
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={TRANSACTION_TRANSFER_MODAL}
-        onCancel={handleCancelTransfer}
-        title={t('Transfer')}
-      >
-        <Transaction
-          key={sendFundKey}
-          modalContent={isWebUI}
-        >
-          <SendFund
-            modalContent={isWebUI}
-            tokenGroupSlug={_tokenGroupSlug}
-          />
-        </Transaction>
-      </BaseModal>
+      {
+        isSendFundVisible && (
+          <BaseModal
+            className={'right-side-modal'}
+            destroyOnClose={true}
+            id={TRANSACTION_TRANSFER_MODAL}
+            onCancel={handleCancelTransfer}
+            title={t('Transfer')}
+          >
+            <Transaction
+              modalContent={isWebUI}
+            >
+              <SendFund
+                modalContent={isWebUI}
+                tokenGroupSlug={_tokenGroupSlug}
+              />
+            </Transaction>
+          </BaseModal>
+        )
+      }
 
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={OFF_RAMP_TRANSACTION_TRANSFER_MODAL}
-        onCancel={handleCancelSell}
-        title={t('Transfer')}
-      >
-        <Transaction
-          key={sendFundKey}
-          modalContent={isWebUI}
-        >
-          <SendFundOffRamp
-            modalContent={isWebUI}
-            tokenGroupSlug={_tokenGroupSlug}
-          />
-        </Transaction>
-      </BaseModal>
+      {
+        isSendFundOffRampVisible && (
+          <BaseModal
+            className={'right-side-modal'}
+            destroyOnClose={true}
+            id={OFF_RAMP_TRANSACTION_TRANSFER_MODAL}
+            onCancel={handleCancelSell}
+            title={t('Transfer')}
+          >
+            <Transaction
+              modalContent={isWebUI}
+            >
+              <SendFundOffRamp
+                modalContent={isWebUI}
+                tokenGroupSlug={_tokenGroupSlug}
+              />
+            </Transaction>
+          </BaseModal>
+        )
+      }
 
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={BUY_TOKEN_MODAL}
-        onCancel={handleCancelBuy}
-        title={t('Buy & sell tokens')}
-      >
-        <BuyTokens
-          key={buyTokensKey}
-          modalContent={isWebUI}
-          slug={buyTokenSymbol}
-        />
-      </BaseModal>
+      {
+        isBuyTokensVisible && (
+          <BaseModal
+            className={'right-side-modal'}
+            destroyOnClose={true}
+            id={BUY_TOKEN_MODAL}
+            onCancel={handleCancelBuy}
+            title={t('Buy & sell tokens')}
+          >
+            <BuyTokens
+              modalContent={isWebUI}
+              slug={buyTokenSymbol}
+            />
+          </BaseModal>
+        )
+      }
 
       <ReceiveModal
         {...receiveModalProps}
