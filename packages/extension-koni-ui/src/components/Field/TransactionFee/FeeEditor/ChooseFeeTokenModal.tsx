@@ -35,7 +35,7 @@ const numberMetadata = { maxNumberFormat: 8 };
 
 // TODO: Merge this component with ChooseFeeTokenModal in Swap.
 const Component: React.FC<Props> = (props: Props) => {
-  const { className, convertedFeeValueToUSD, estimateFee, feePercentageSpecialCase, items, modalId, onSelectItem, selectedItem, tokenSlug } = props;
+  const { className, convertedFeeValueToUSD, estimateFee, feePercentageSpecialCase, items, modalId, onSelectItem: _onSelectItem, selectedItem, tokenSlug } = props;
   const { currencyData } = useSelector((state: RootState) => state.price);
   const { inactiveModal } = useContext(ModalContext);
 
@@ -66,6 +66,11 @@ const Component: React.FC<Props> = (props: Props) => {
       return (a.isDisableItem ? 1 : 0) - (b.isDisableItem ? 1 : 0);
     });
   }, [estimateFee, estimateFeeSpecial, items, tokenSlug]);
+
+  const onSelectItem = useCallback((slug: string): void => {
+    _onSelectItem(slug);
+    inactiveModal(modalId);
+  }, [_onSelectItem, inactiveModal, modalId]);
 
   return (
     <>
