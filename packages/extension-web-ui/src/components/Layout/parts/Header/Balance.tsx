@@ -1,7 +1,7 @@
 // Copyright 2019-2022 @polkadot/extension-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { BuyTokenInfo } from '@subwallet/extension-base/types';
+import { AccountProxyType, BuyTokenInfo } from '@subwallet/extension-base/types';
 import { balanceNoPrefixFormater, formatNumber } from '@subwallet/extension-base/utils';
 import { ReceiveModal } from '@subwallet/extension-web-ui/components';
 import { BaseModal } from '@subwallet/extension-web-ui/components/Modal/BaseModal';
@@ -18,7 +18,7 @@ import SendFund from '@subwallet/extension-web-ui/Popup/Transaction/variants/Sen
 import SendFundOffRamp from '@subwallet/extension-web-ui/Popup/Transaction/variants/SendFundOffRamp';
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { PhosphorIcon, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { isAccountAll, removeStorage } from '@subwallet/extension-web-ui/utils';
+import { getTransactionFromAccountProxyValue, removeStorage } from '@subwallet/extension-web-ui/utils';
 import { Button, Icon, ModalContext, Number, Tag, Tooltip, Typography } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { ArrowsClockwise, CopySimple, Eye, EyeSlash, PaperPlaneTilt, PlusMinus } from 'phosphor-react';
@@ -67,10 +67,11 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   const { activeModal, inactiveModal } = useContext(ModalContext);
   const { onOpenReceive, receiveModalProps } = useCoreReceiveModalHelper(_tokenGroupSlug);
 
-  const currentAccount = useSelector((state) => state.accountState.currentAccount);
+  const currentAccountProxy = useSelector((state) => state.accountState.currentAccountProxy);
   const { tokens } = useSelector((state) => state.buyService);
-  const [sendFundKey, setSendFundKey] = useState<string>('sendFundKey');
-  const [buyTokensKey, setBuyTokensKey] = useState<string>('buyTokensKey');
+  const [isSendFundVisible, setIsSendFundVisible] = useState<boolean>(false);
+  const [isSendFundOffRampVisible, setIsSendFundOffRampVisible] = useState<boolean>(false);
+  const [isBuyTokensVisible, setIsBuyTokensVisible] = useState<boolean>(false);
   const [buyTokenSymbol, setBuyTokenSymbol] = useState<string>('');
   const notify = useNotification();
 
@@ -116,6 +117,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
     setBuyTokenSymbol(symbol);
 
     activeModal(BUY_TOKEN_MODAL);
+    setIsBuyTokensVisible(true);
   }, [activeModal, buyInfos]);
 
   useEffect(() => {
@@ -123,7 +125,11 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   }, [dataContext]);
 
   const onOpenSendFund = useCallback(() => {
-    if (currentAccount && currentAccount.isReadOnly) {
+    if (!currentAccountProxy) {
+      return;
+    }
+
+    if (currentAccountProxy.accountType === AccountProxyType.READ_ONLY) {
       notify({
         message: t('The account you are using is read-only, you cannot send assets with it'),
         type: 'info',
@@ -133,16 +139,15 @@ function Component ({ className }: Props): React.ReactElement<Props> {
       return;
     }
 
-    const address = currentAccount ? isAccountAll(currentAccount.address) ? '' : currentAccount.address : '';
-
     setStorage({
       ...DEFAULT_TRANSFER_PARAMS,
-      from: address,
+      fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy),
       defaultSlug: tokenGroupSlug || ''
     });
+    setIsSendFundVisible(true);
     activeModal(TRANSACTION_TRANSFER_MODAL);
   },
-  [currentAccount, setStorage, tokenGroupSlug, activeModal, notify, t]
+  [currentAccountProxy, setStorage, tokenGroupSlug, activeModal, notify, t]
   );
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -150,16 +155,12 @@ function Component ({ className }: Props): React.ReactElement<Props> {
 
   useEffect(() => {
     if (onOpen === 'true') {
+      setIsSendFundOffRampVisible(true);
       activeModal(OFF_RAMP_TRANSACTION_TRANSFER_MODAL);
       searchParams.delete('onOpen');
       setSearchParams(searchParams);
     }
   }, [onOpen, activeModal, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    setSendFundKey(`sendFundKey-${Date.now()}`);
-    setBuyTokensKey(`buyTokensKey-${Date.now()}`);
-  }, [locationPathname]);
 
   useEffect(() => {
     const backgroundColor = isTotalBalanceDecrease ? BackgroundColorMap.DECREASE : BackgroundColorMap.INCREASE;
@@ -169,17 +170,18 @@ function Component ({ className }: Props): React.ReactElement<Props> {
 
   const handleCancelTransfer = useCallback(() => {
     inactiveModal(TRANSACTION_TRANSFER_MODAL);
-    setSendFundKey(`sendFundKey-${Date.now()}`);
+    setIsSendFundVisible(false);
   }, [inactiveModal]);
 
   const handleCancelBuy = useCallback(() => {
     inactiveModal(BUY_TOKEN_MODAL);
-    setBuyTokensKey(`buyTokensKey-${Date.now()}`);
+    setIsBuyTokensVisible(false);
   }, [inactiveModal]);
 
   const handleCancelSell = useCallback(() => {
     removeStorage(OFF_RAMP_DATA);
     inactiveModal(OFF_RAMP_TRANSACTION_TRANSFER_MODAL);
+    setIsSendFundOffRampVisible(false);
   }, [inactiveModal]);
 
   const isSupportBuyTokens = useMemo(() => {
@@ -397,55 +399,64 @@ function Component ({ className }: Props): React.ReactElement<Props> {
         </div>
       </div>
 
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={TRANSACTION_TRANSFER_MODAL}
-        onCancel={handleCancelTransfer}
-        title={t('Transfer')}
-      >
-        <Transaction
-          key={sendFundKey}
-          modalContent={isWebUI}
-        >
-          <SendFund
-            modalContent={isWebUI}
-            tokenGroupSlug={_tokenGroupSlug}
-          />
-        </Transaction>
-      </BaseModal>
+      {
+        isSendFundVisible && (
+          <BaseModal
+            className={'right-side-modal'}
+            destroyOnClose={true}
+            id={TRANSACTION_TRANSFER_MODAL}
+            onCancel={handleCancelTransfer}
+            title={t('Transfer')}
+          >
+            <Transaction
+              modalContent={isWebUI}
+            >
+              <SendFund
+                modalContent={isWebUI}
+                tokenGroupSlug={_tokenGroupSlug}
+              />
+            </Transaction>
+          </BaseModal>
+        )
+      }
 
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={OFF_RAMP_TRANSACTION_TRANSFER_MODAL}
-        onCancel={handleCancelSell}
-        title={t('Transfer')}
-      >
-        <Transaction
-          key={sendFundKey}
-          modalContent={isWebUI}
-        >
-          <SendFundOffRamp
-            modalContent={isWebUI}
-            tokenGroupSlug={_tokenGroupSlug}
-          />
-        </Transaction>
-      </BaseModal>
+      {
+        isSendFundOffRampVisible && (
+          <BaseModal
+            className={'right-side-modal'}
+            destroyOnClose={true}
+            id={OFF_RAMP_TRANSACTION_TRANSFER_MODAL}
+            onCancel={handleCancelSell}
+            title={t('Transfer')}
+          >
+            <Transaction
+              modalContent={isWebUI}
+            >
+              <SendFundOffRamp
+                modalContent={isWebUI}
+                tokenGroupSlug={_tokenGroupSlug}
+              />
+            </Transaction>
+          </BaseModal>
+        )
+      }
 
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={BUY_TOKEN_MODAL}
-        onCancel={handleCancelBuy}
-        title={t('Buy & sell tokens')}
-      >
-        <BuyTokens
-          key={buyTokensKey}
-          modalContent={isWebUI}
-          slug={buyTokenSymbol}
-        />
-      </BaseModal>
+      {
+        isBuyTokensVisible && (
+          <BaseModal
+            className={'right-side-modal'}
+            destroyOnClose={true}
+            id={BUY_TOKEN_MODAL}
+            onCancel={handleCancelBuy}
+            title={t('Buy & sell tokens')}
+          >
+            <BuyTokens
+              modalContent={isWebUI}
+              slug={buyTokenSymbol}
+            />
+          </BaseModal>
+        )
+      }
 
       <ReceiveModal
         {...receiveModalProps}

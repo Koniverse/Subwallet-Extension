@@ -7,7 +7,7 @@ import { useSelector, useTranslation } from '@subwallet/extension-web-ui/hooks';
 import usePreloadView from '@subwallet/extension-web-ui/hooks/router/usePreloadView';
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
-import { computeStatus, isAccountAll, openInNewTab } from '@subwallet/extension-web-ui/utils';
+import { computeStatus, getTransactionFromAccountProxyValue, openInNewTab } from '@subwallet/extension-web-ui/utils';
 import { Button, Icon, Image } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { ArrowCircleLeft, ArrowCircleRight, ArrowsLeftRight, ArrowSquareUpRight, Clock, Gear, Globe, Info, MessengerLogo, Parachute, Rocket, Vault, Wallet } from 'phosphor-react';
@@ -29,11 +29,8 @@ function Component ({ className,
   const navigate = useNavigate();
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const { t } = useTranslation();
-  const currentAccount = useSelector((root) => root.accountState.currentAccount);
+  const currentAccountProxy = useSelector((state: RootState) => state.accountState.currentAccountProxy);
   const [, setSwapStorage] = useLocalStorage(SWAP_TRANSACTION, DEFAULT_SWAP_PARAMS);
-  const transactionFromValue = useMemo(() => {
-    return currentAccount?.address ? isAccountAll(currentAccount.address) ? '' : currentAccount.address : '';
-  }, [currentAccount?.address]);
 
   const { missions } = useSelector((state: RootState) => state.missionPool);
 
@@ -196,7 +193,7 @@ function Component ({ className,
     if (value === swapPath) {
       setSwapStorage({
         ...DEFAULT_SWAP_PARAMS,
-        from: transactionFromValue
+        fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy)
       });
     }
 
@@ -205,7 +202,7 @@ function Component ({ className,
     }
 
     navigate(`${value}`);
-  }, [latestLiveMissionIds.length, liveMissionIds, navigate, setStoredLiveMissionIds, setSwapStorage, transactionFromValue]);
+  }, [currentAccountProxy, latestLiveMissionIds.length, liveMissionIds, navigate, setStoredLiveMissionIds, setSwapStorage]);
 
   const goHome = useCallback(() => {
     navigate('/home');
