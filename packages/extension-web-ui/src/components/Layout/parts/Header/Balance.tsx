@@ -1,7 +1,7 @@
 // Copyright 2019-2022 @polkadot/extension-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { BuyTokenInfo } from '@subwallet/extension-base/types';
+import { AccountProxyType, BuyTokenInfo } from '@subwallet/extension-base/types';
 import { balanceNoPrefixFormater, formatNumber } from '@subwallet/extension-base/utils';
 import { ReceiveModal } from '@subwallet/extension-web-ui/components';
 import { BaseModal } from '@subwallet/extension-web-ui/components/Modal/BaseModal';
@@ -18,7 +18,7 @@ import SendFund from '@subwallet/extension-web-ui/Popup/Transaction/variants/Sen
 import SendFundOffRamp from '@subwallet/extension-web-ui/Popup/Transaction/variants/SendFundOffRamp';
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { PhosphorIcon, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { isAccountAll, removeStorage } from '@subwallet/extension-web-ui/utils';
+import { getTransactionFromAccountProxyValue, removeStorage } from '@subwallet/extension-web-ui/utils';
 import { Button, Icon, ModalContext, Number, Tag, Tooltip, Typography } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { ArrowsClockwise, CopySimple, Eye, EyeSlash, PaperPlaneTilt, PlusMinus } from 'phosphor-react';
@@ -67,7 +67,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   const { activeModal, inactiveModal } = useContext(ModalContext);
   const { onOpenReceive, receiveModalProps } = useCoreReceiveModalHelper(_tokenGroupSlug);
 
-  const currentAccount = useSelector((state) => state.accountState.currentAccount);
+  const currentAccountProxy = useSelector((state) => state.accountState.currentAccountProxy);
   const { tokens } = useSelector((state) => state.buyService);
   const [sendFundKey, setSendFundKey] = useState<string>('sendFundKey');
   const [buyTokensKey, setBuyTokensKey] = useState<string>('buyTokensKey');
@@ -123,7 +123,11 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   }, [dataContext]);
 
   const onOpenSendFund = useCallback(() => {
-    if (currentAccount && currentAccount.isReadOnly) {
+    if (!currentAccountProxy) {
+      return;
+    }
+
+    if (currentAccountProxy.accountType === AccountProxyType.READ_ONLY) {
       notify({
         message: t('The account you are using is read-only, you cannot send assets with it'),
         type: 'info',
@@ -133,16 +137,14 @@ function Component ({ className }: Props): React.ReactElement<Props> {
       return;
     }
 
-    const address = currentAccount ? isAccountAll(currentAccount.address) ? '' : currentAccount.address : '';
-
     setStorage({
       ...DEFAULT_TRANSFER_PARAMS,
-      from: address,
+      fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy),
       defaultSlug: tokenGroupSlug || ''
     });
     activeModal(TRANSACTION_TRANSFER_MODAL);
   },
-  [currentAccount, setStorage, tokenGroupSlug, activeModal, notify, t]
+  [currentAccountProxy, setStorage, tokenGroupSlug, activeModal, notify, t]
   );
 
   const [searchParams, setSearchParams] = useSearchParams();
