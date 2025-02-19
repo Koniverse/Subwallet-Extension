@@ -3,7 +3,7 @@
 
 import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { EvmEIP1559FeeOption, FeeCustom, FeeDefaultOption, FeeDetail, FeeOptionKey, TransactionFee } from '@subwallet/extension-base/types';
-import { BN_ZERO } from '@subwallet/extension-base/utils';
+import { BN_ZERO, formatNumber } from '@subwallet/extension-base/utils';
 import { AmountInput, BasicInputEvent, RadioGroup } from '@subwallet/extension-koni-ui/components';
 import { FeeOptionItem } from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/FeeOptionItem';
 import { ASSET_HUB_CHAIN_SLUGS, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
@@ -44,7 +44,7 @@ interface ViewOption {
 }
 
 interface FormProps {
-  customValue: string;
+  customValue?: string;
   maxFeeValue?: string;
   priorityFeeValue?: string
 }
@@ -161,21 +161,20 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
     );
   };
 
-  const _onSubmitCustomOption = useCallback(() => {
-    let customValue;
+  const _onSubmitCustomOption: FormCallbacks<FormProps>['onFinish'] = useCallback((values: FormProps) => {
+    let rs: FeeCustom;
+
+    const { customValue, maxFeeValue, priorityFeeValue } = values;
 
     if (feeType === 'evm') {
-      const maxFeeValue = form.getFieldValue('maxFeeValue') as string;
-      const priorityFeeValue = form.getFieldValue('priorityFeeValue') as string;
-
-      customValue = { maxFeePerGas: maxFeeValue, maxPriorityFeePerGas: priorityFeeValue } as FeeCustom;
+      rs = { maxFeePerGas: maxFeeValue as string, maxPriorityFeePerGas: priorityFeeValue as string };
     } else {
-      customValue = form.getFieldValue('customValue') as FeeCustom;
+      rs = { tip: customValue as string };
     }
 
-    onSelectOption({ feeCustom: customValue, feeOption: 'custom' });
+    onSelectOption({ feeCustom: rs, feeOption: 'custom' });
     inactiveModal(modalId);
-  }, [feeType, form, inactiveModal, modalId, onSelectOption]);
+  }, [feeType, inactiveModal, modalId, onSelectOption]);
 
   const customValueValidator = useCallback((rule: Rule, value: string): Promise<void> => {
     if (!value) {
@@ -194,8 +193,8 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
       return Promise.resolve();
     }
 
-    if ((new BigN(value)).lte(BN_ZERO)) {
-      return Promise.reject(t('The priority fee must be greater than 0'));
+    if ((new BigN(value)).lt(BN_ZERO)) {
+      return Promise.reject(t('The priority fee must be equal or greater than 0'));
     }
 
     return Promise.resolve();
@@ -208,10 +207,10 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
 
     if (feeOptionsInfo && 'baseGasFee' in feeOptionsInfo) {
       const baseGasFee = feeOptionsInfo.baseGasFee;
-      const maxFeeValue = form.getFieldValue('maxFeeValue') as string;
+      const minFee = new BigN(baseGasFee || 0).multipliedBy(1.5);
 
-      if (baseGasFee && maxFeeValue && new BigN(value).lte(new BigN(baseGasFee).multipliedBy(1.5))) {
-        return Promise.reject(t('Max fee/Priority fee must be higher than min GWEI'));
+      if (baseGasFee && value && new BigN(value).lte(minFee)) {
+        return Promise.reject(t('Max fee per gas must be higher than {{min}} GWEI', { replace: { min: formatNumber(minFee, 9, (s) => s) } }));
       }
 
       if ((new BigN(value)).lte(BN_ZERO)) {
@@ -220,7 +219,7 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
     }
 
     return Promise.resolve();
-  }, [feeOptionsInfo, form, t]);
+  }, [feeOptionsInfo, t]);
 
   const onValuesChange: FormCallbacks<FormProps>['onValuesChange'] = useCallback(
     (part: Partial<FormProps>, values: FormProps) => {
