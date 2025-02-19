@@ -1441,7 +1441,7 @@ export default class TransactionService {
     this.updateAliveProcess();
   }
 
-  private updateProcessStepStatus (step: BriefProcessStep, data: Pick<ProcessStep, 'status' | 'transactionId' | 'extrinsicHash' | 'chain'>) {
+  public updateProcessStepStatus (step: BriefProcessStep, data: Pick<ProcessStep, 'status' | 'transactionId' | 'extrinsicHash' | 'chain'>) {
     const { processId, stepId } = step;
     const process = this.aliveProcessMap.get(processId);
 

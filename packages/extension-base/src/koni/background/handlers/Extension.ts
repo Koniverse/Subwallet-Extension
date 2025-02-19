@@ -3300,7 +3300,22 @@ export default class KoniExtension {
     const { data, isPassConfirmation, onSend, path, processId } = inputData;
     const { address } = data;
 
+    let step: BriefProcessStep | undefined;
+
+    if (processId) {
+      const _step = path.steps[inputData.currentStep];
+
+      step = {
+        processId,
+        stepId: _step.id
+      };
+    }
+
     if (!data) {
+      if (step) {
+        this.#koniState.transactionService.updateProcessStepStatus(step, { status: StepStatus.FAILED });
+      }
+
       return this.#koniState.transactionService
         .generateBeforeHandleResponseErrors([new TransactionError(BasicTxErrorType.INTERNAL_ERROR)]);
     }
@@ -3310,6 +3325,10 @@ export default class KoniExtension {
     const yieldValidation: TransactionError[] = await this.#koniState.earningService.validateYieldJoin({ data, path }); // TODO: validate, set to fail upon submission
 
     if (yieldValidation.length > 0) {
+      if (step) {
+        this.#koniState.transactionService.updateProcessStepStatus(step, { status: StepStatus.FAILED });
+      }
+
       return this.#koniState.transactionService
         .generateBeforeHandleResponseErrors(yieldValidation);
     }
@@ -3327,8 +3346,6 @@ export default class KoniExtension {
       }
     };
 
-    let step: BriefProcessStep | undefined;
-
     if (processId && poolHandler) {
       const convertFee = (fee: YieldTokenBaseInfo): CommonStepFeeInfo => {
         return {
@@ -3341,13 +3358,6 @@ export default class KoniExtension {
           defaultFeeToken: fee.slug,
           feeOptions: [fee.slug]
         };
-      };
-
-      const _step = path.steps[inputData.currentStep];
-
-      step = {
-        processId,
-        stepId: _step.id
       };
 
       if (!this.#koniState.transactionService.checkProcessExist(processId) && step) {
@@ -3839,8 +3849,22 @@ export default class KoniExtension {
 
   private async handleSwapStep (inputData: SwapSubmitParams): Promise<SWTransactionResponse> {
     const { address, isPassConfirmation, onSend, process, processId, quote, recipient } = inputData;
+    let step: BriefProcessStep | undefined;
+
+    if (processId) {
+      const _step = process.steps[inputData.currentStep];
+
+      step = {
+        processId,
+        stepId: _step.id
+      };
+    }
 
     if (!quote || !address || !process) {
+      if (step) {
+        this.#koniState.transactionService.updateProcessStepStatus(step, { status: StepStatus.FAILED });
+      }
+
       return this.#koniState.transactionService
         .generateBeforeHandleResponseErrors([new TransactionError(BasicTxErrorType.INTERNAL_ERROR)]);
     }
@@ -3850,6 +3874,10 @@ export default class KoniExtension {
     const swapValidations: TransactionError[] = await this.#koniState.swapService.validateSwapProcess({ address, process, selectedQuote: quote, recipient });
 
     if (swapValidations.length > 0) {
+      if (step) {
+        this.#koniState.transactionService.updateProcessStepStatus(step, { status: StepStatus.FAILED });
+      }
+
       return this.#koniState.transactionService
         .generateBeforeHandleResponseErrors(swapValidations);
     }
@@ -3865,15 +3893,8 @@ export default class KoniExtension {
       }
     };
 
-    let step: BriefProcessStep | undefined;
-
     if (processId) {
       const _step = process.steps[inputData.currentStep];
-
-      step = {
-        processId,
-        stepId: _step.id
-      };
 
       if (!this.#koniState.transactionService.checkProcessExist(processId) && step) {
         const combineInfo: SwapBaseTxData = {
