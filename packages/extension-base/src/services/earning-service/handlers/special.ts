@@ -3,7 +3,7 @@
 
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
 import { AmountData, ChainType, ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
-import { ALL_ACCOUNT_KEY, XCM_FEE_RATIO } from '@subwallet/extension-base/constants';
+import { ALL_ACCOUNT_KEY, XCM_FEE_RATIO, XCM_MIN_AMOUNT_RATIO } from '@subwallet/extension-base/constants';
 import { YIELD_POOL_STAT_REFRESH_INTERVAL } from '@subwallet/extension-base/koni/api/yield/helper/utils';
 import KoniState from '@subwallet/extension-base/koni/background/handlers/State';
 import { createXcmExtrinsic } from '@subwallet/extension-base/services/balance-service/transfer/xcm';
@@ -286,12 +286,12 @@ export default abstract class BaseSpecialStakingPoolHandler extends BasePoolHand
 
           const fee: YieldTokenBaseInfo = {
             slug: altInputTokenSlug,
-            amount: Math.round(xcmFeeInfo.partialFee * 1.2).toString() // TODO
+            amount: Math.round(xcmFeeInfo.partialFee * XCM_MIN_AMOUNT_RATIO).toString() // TODO
           };
 
           let bnTransferAmount = bnAmount.sub(bnInputTokenBalance);
 
-          if (_isNativeToken(inputTokenInfo)) {
+          if (_isNativeToken(altInputTokenInfo)) {
             const bnXcmFee = new BN(fee.amount || 0); // xcm fee is paid in native token but swap token is not always native token
 
             bnTransferAmount = bnTransferAmount.add(bnXcmFee);
