@@ -92,8 +92,6 @@ export default class FeeService {
   public subscribeChainFee (id: string, chain: string, type: FeeChainType, callback?: (data: FeeInfo) => void) {
     return new Promise<FeeInfo>((resolve) => {
       const _callback = (value: FeeInfo | undefined) => {
-        console.log(id, this.chainFeeSubscriptionMap);
-
         if (value) {
           callback?.(value);
           resolve(value);

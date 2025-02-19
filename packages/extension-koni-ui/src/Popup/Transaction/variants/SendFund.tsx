@@ -205,9 +205,6 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
   const chainStatus = useMemo(() => chainStatusMap[chainValue]?.connectionStatus, [chainValue, chainStatusMap]);
   const estimatedNativeFee = useMemo((): string => transferInfo?.feeOptions.estimatedFee || '0', [transferInfo]);
 
-  // todo: remove after testing
-  console.log('[TESTER] Transfer info:', transferInfo);
-
   const [processState, dispatchProcessState] = useReducer(commonProcessReducer, DEFAULT_COMMON_PROCESS);
 
   const handleWarning = useCallback((warnings: TransactionWarning[]) => {
