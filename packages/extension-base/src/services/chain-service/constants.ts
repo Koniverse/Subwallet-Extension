@@ -105,7 +105,7 @@ export const _STAKING_ERA_LENGTH_MAP: Record<string, number> = { // in hours
   avail_mainnet: 24,
   cere: 24,
   analog_timechain: 12,
-  muse_testnet: 0.04
+  muse_testnet: 1 / 600 // 20 blocks?
 };
 
 export const _EXPECTED_BLOCK_TIME: Record<string, number> = { // in seconds

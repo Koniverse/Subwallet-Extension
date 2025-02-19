@@ -3,6 +3,7 @@
 
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
 import { ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
+import { getCommission } from '@subwallet/extension-base/koni/api/staking/bonding/utils';
 import { _STAKING_ERA_LENGTH_MAP } from '@subwallet/extension-base/services/chain-service/constants';
 import BaseParaStakingPoolHandler from '@subwallet/extension-base/services/earning-service/handlers/native-staking/base-para';
 import { BasicTxErrorType, EarningStatus, NativeYieldPoolInfo, SubmitJoinNativeStaking, TransactionData, UnstakingInfo, ValidatorInfo, YieldPoolInfo, YieldPositionInfo, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
@@ -17,6 +18,11 @@ interface FrameSupportTokensMiscIdAmountRuntimeFreezeReason {
     CollatorStaking: string
   },
   amount: string
+}
+
+interface PalletCollatorStakingCandidateInfo {
+  stake: string,
+  stakers: string
 }
 
 export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolHandler {
@@ -166,10 +172,38 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
   /* Get pool targets */
 
   async getPoolTargets (): Promise<ValidatorInfo[]> {
-    // todo
-    // collatorStaking.candidates
+    const chainApi = await this.substrateApi.isReady;
 
-    return [] as ValidatorInfo[];
+    const [_allCollators, _minStake, _commission] = await Promise.all([
+      chainApi.api.query.collatorStaking.candidates.entries(),
+      chainApi.api.query.collatorStaking.minStake(),
+      chainApi.api.query.collatorStaking.collatorRewardPercentage()
+    ]);
+
+    const maxStakersPerCollator = chainApi.api.consts.collatorStaking.maxStakers.toPrimitive() as number;
+
+    return _allCollators.map((_collator) => {
+      const collatorAddress = _collator[0].toString();
+      const collatorInfo = _collator[1].toPrimitive() as unknown as PalletCollatorStakingCandidateInfo;
+
+      const bnTotalStake = BigInt(collatorInfo.stake);
+      const numOfStakers = parseInt(collatorInfo.stakers);
+      const isCrowded = numOfStakers >= maxStakersPerCollator;
+
+      return {
+        address: collatorAddress,
+        chain: this.chain,
+        totalStake: bnTotalStake.toString(),
+        ownStake: '0',
+        otherStake: bnTotalStake.toString(),
+        minBond: _minStake.toPrimitive(),
+        nominatorCount: numOfStakers,
+        commission: getCommission(_commission.toString()),
+        blocked: false,
+        isVerified: false,
+        isCrowded
+      } as ValidatorInfo;
+    });
   }
 
   /* Get pool targets */
@@ -178,7 +212,7 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
 
   async createJoinExtrinsic (data: SubmitJoinNativeStaking, positionInfo?: YieldPositionInfo): Promise<[TransactionData, YieldTokenBaseInfo]> {
     const apiPromise = await this.substrateApi.isReady;
-    const { amount, selectedValidators } = data;
+    const { address, amount, selectedValidators } = data;
 
     let lockTx: SubmittableExtrinsic<'promise'> | undefined;
     let stakeTx: SubmittableExtrinsic<'promise'> | undefined;
@@ -191,7 +225,7 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
       return [extrinsic, { slug: this.nativeToken.slug, amount: '0' }];
     };
 
-    const _accountFreezes = await apiPromise.api.query.balances.freezes();
+    const _accountFreezes = await apiPromise.api.query.balances.freezes(address);
     const accountFreezes = _accountFreezes.toPrimitive() as unknown as FrameSupportTokensMiscIdAmountRuntimeFreezeReason[];
     const accountLocking = accountFreezes.filter((accountFreeze) => accountFreeze.id.CollatorStaking === 'Staking');
 
