@@ -6,7 +6,7 @@ import { EvmEIP1559FeeOption, FeeCustom, FeeDefaultOption, FeeDetail, FeeOptionK
 import { BN_ZERO, formatNumber } from '@subwallet/extension-base/utils';
 import { AmountInput, BasicInputEvent, RadioGroup } from '@subwallet/extension-koni-ui/components';
 import { FeeOptionItem } from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/FeeOptionItem';
-import { ASSET_HUB_CHAIN_SLUGS, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
+import { BN_TEN, ASSET_HUB_CHAIN_SLUGS, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { FormCallbacks, ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Button, Form, Icon, Logo, ModalContext, Number, SwModal } from '@subwallet/react-ui';
 import { Rule } from '@subwallet/react-ui/es/form';
@@ -238,6 +238,20 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
     }, 100);
   }, [activeModal]);
 
+  const convertedCustomEvmFee = useMemo(() => {
+    const maxFeeValue = form.getFieldValue('maxFeeValue') as string || feeDefaultValue?.maxFeePerGas;
+
+    if (maxFeeValue && feeOptionsInfo && 'gasLimit' in feeOptionsInfo) {
+      return new BigN(maxFeeValue).multipliedBy(feeOptionsInfo.gasLimit);
+    }
+
+    return BN_ZERO;
+  }, [feeDefaultValue?.maxFeePerGas, feeOptionsInfo, form]);
+
+  const convertedCustomEvmFeeToUSD = useMemo(() => {
+    return convertedCustomEvmFee.multipliedBy(priceValue).dividedBy(BN_TEN.pow(decimals));
+  }, [convertedCustomEvmFee, decimals, priceValue]);
+
   const onClickSubmit = useCallback(() => {
     if (currentViewMode === ViewMode.RECOMMENDED) {
       if (optionSelected) {
@@ -317,6 +331,20 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
           placeholder='Enter amount'
         />
       </Form.Item>
+      <div className={'converted-custom-fee'}>
+        <Number
+          className={'__fee-price-value'}
+          decimal={decimals}
+          suffix={symbol}
+          value={convertedCustomEvmFee}
+        />&nbsp;
+        <Number
+          className={'__fee-price-value'}
+          decimal={0}
+          prefix={'~ $'}
+          value={convertedCustomEvmFeeToUSD}
+        />
+      </div>
     </div>
   );
 
@@ -438,6 +466,23 @@ export const FeeEditorModal = styled(Component)<Props>(({ theme: { token } }: Pr
       },
       '.ant-sw-header-right-part': {
         paddingLeft: token.paddingXS
+      }
+    },
+
+    '.converted-custom-fee': {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      marginTop: token.marginSM,
+      color: token.colorTextLight4,
+      fontSize: token.fontSize,
+      lineHeight: token.lineHeight,
+
+      '.ant-number-integer, .ant-number-decimal, .ant-number-suffix, .ant-number-prefix': {
+        color: `${token.colorTextLight4} !important`,
+        fontSize: `${token.fontSize}px !important`,
+        fontWeight: 'inherit !important',
+        lineHeight: token.lineHeight
       }
     },
 
