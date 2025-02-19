@@ -575,7 +575,7 @@ export function getSupportedDaysByHistoryDepth (erasPerDay: number, maxSupported
   const maxSupportDay = Math.floor(maxSupportedEras / erasPerDay);
 
   if (liveDay && liveDay <= 30) {
-    return Math.min(liveDay - 1, maxSupportDay);
+    return Math.min(Math.floor(liveDay - 1), maxSupportDay);
   }
 
   if (maxSupportDay > 30) {
