@@ -8,7 +8,7 @@ import { AmountInput, BasicInputEvent, RadioGroup } from '@subwallet/extension-k
 import { FeeOptionItem } from '@subwallet/extension-koni-ui/components/Field/TransactionFee/FeeEditor/FeeOptionItem';
 import { ASSET_HUB_CHAIN_SLUGS, CHOOSE_FEE_TOKEN_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { FormCallbacks, ThemeProps } from '@subwallet/extension-koni-ui/types';
-import { Button, Form, Icon, Input, Logo, ModalContext, Number, SwModal } from '@subwallet/react-ui';
+import { Button, Form, Icon, Logo, ModalContext, Number, SwModal } from '@subwallet/react-ui';
 import { Rule } from '@subwallet/react-ui/es/form';
 import BigN from 'bignumber.js';
 import CN from 'classnames';
@@ -292,11 +292,12 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
         ]}
         statusHelpAsTooltip={true}
       >
-        <Input
+        <AmountInput
+          decimals={9}
           defaultValue={feeDefaultValue?.maxFeePerGas}
           label='Max fee (GWEI)'
+          maxValue={'0'}
           placeholder='Enter amount'
-          type='number'
         />
       </Form.Item>
       <Form.Item
@@ -309,11 +310,12 @@ const Component = ({ chainValue, className, currentTokenPayFee, decimals, feeOpt
         ]}
         statusHelpAsTooltip={true}
       >
-        <Input
+        <AmountInput
+          decimals={9}
           defaultValue={feeDefaultValue?.maxPriorityFeePerGas}
           label='Priority fee (GWEI)'
+          maxValue={'0'}
           placeholder='Enter amount'
-          type='number'
         />
       </Form.Item>
     </div>
