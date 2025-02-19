@@ -22,7 +22,7 @@ import { enableChain, saveNotificationSetup } from '@subwallet/extension-koni-ui
 import { fetchInappNotifications, getIsClaimNotificationStatus, markAllReadNotification, switchReadNotificationStatus } from '@subwallet/extension-koni-ui/messaging/transaction/notification';
 import NotificationItem from '@subwallet/extension-koni-ui/Popup/Settings/Notifications/NotificationItem';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
-import { Theme, ThemeProps } from '@subwallet/extension-koni-ui/types';
+import { NotificationScreenParam, Theme, ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { getTotalWidrawable, getYieldRewardTotal } from '@subwallet/extension-koni-ui/utils/notification';
 import { ActivityIndicator, Button, Icon, ModalContext, SwList, SwSubHeader } from '@subwallet/react-ui';
 import { SwIconProps } from '@subwallet/react-ui/es/icon';
@@ -31,7 +31,7 @@ import CN from 'classnames';
 import { ArrowsLeftRight, ArrowSquareDownLeft, ArrowSquareUpRight, BellSimpleRinging, BellSimpleSlash, CheckCircle, Checks, Coins, Database, DownloadSimple, FadersHorizontal, GearSix, Gift, ListBullets, XCircle } from 'phosphor-react';
 import React, { SyntheticEvent, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styled, { useTheme } from 'styled-components';
 
 type Props = ThemeProps;
@@ -69,8 +69,9 @@ export const NotificationIconMap = {
 const alertModalId = 'notification-alert-modal';
 
 function Component ({ className = '' }: Props): React.ReactElement<Props> {
-  const [searchParams] = useSearchParams();
-  const paramTransactionProcessId = searchParams.get('transaction-process-id');
+  const locationState = useLocation().state as NotificationScreenParam | undefined;
+  const paramTransactionProcess = locationState?.transactionProcess;
+  const paramTransactionProcessId = paramTransactionProcess?.processId;
   const { activeModal, checkActive } = useContext(ModalContext);
   const { transactionProcessDetailModal: { open: openTransactionProcessModal } } = useContext(WalletModalContext);
 
@@ -537,7 +538,8 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
     if (paramTransactionProcessId) {
       openTransactionProcessModal(paramTransactionProcessId);
     }
-  }, [openTransactionProcessModal, paramTransactionProcessId]);
+    // need paramTransactionProcess?.triggerTime to re-run this useEffect
+  }, [openTransactionProcessModal, paramTransactionProcessId, paramTransactionProcess?.triggerTime]);
 
   return (
     <PageWrapper className={`manage-website-access ${className}`}>
