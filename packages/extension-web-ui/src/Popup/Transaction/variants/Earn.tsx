@@ -85,7 +85,7 @@ const Component = ({ className }: ComponentProps) => {
   const autoCheckValidatorGetFromPreview = useRef<boolean>(true);
   const autoCheckCompoundRef = useRef<boolean>(true);
   const isReadyToShowAlertRef = useRef<boolean>(true);
-  const { accountProxies, currentAccount, isAllAccount } = useSelector((state) => state.accountState);
+  const { accountProxies, isAllAccount } = useSelector((state) => state.accountState);
   const [, setReturnPath] = useLocalStorage(CREATE_RETURN, DEFAULT_ROUTER_PATH);
   const chainInfoMap = useSelector((state) => state.chainStore.chainInfoMap);
   const poolInfoMap = useSelector((state) => state.earning.poolInfoMap);
@@ -1476,7 +1476,6 @@ const Component = ({ className }: ComponentProps) => {
       {
         (!isWebUI || isFromStakingRW) && (
           <EarningInstructionModal
-            address={currentAccount?.address}
             assetRegistry={chainAsset}
             closeAlert={closeAlert}
             isShowStakeMoreButton={!isClickInfoButtonRef.current}
