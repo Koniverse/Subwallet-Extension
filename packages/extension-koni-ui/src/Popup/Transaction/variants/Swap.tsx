@@ -20,7 +20,7 @@ import { QuoteResetTime, SwapRoute } from '@subwallet/extension-koni-ui/componen
 import { ADDRESS_INPUT_AUTO_FORMAT_VALUE, BN_TEN, BN_ZERO, CONFIRM_SWAP_TERM, SWAP_ALL_QUOTES_MODAL, SWAP_CHOOSE_FEE_TOKEN_MODAL, SWAP_IDLE_WARNING_MODAL, SWAP_MORE_BALANCE_MODAL, SWAP_SLIPPAGE_MODAL, SWAP_TERMS_OF_SERVICE_MODAL } from '@subwallet/extension-koni-ui/constants';
 import { DataContext } from '@subwallet/extension-koni-ui/contexts/DataContext';
 import { useChainConnection, useDefaultNavigate, useHandleSubmitMultiTransaction, useNotification, usePreCheckAction, useSelector, useSetCurrentPage, useTransactionContext, useWatchTransaction } from '@subwallet/extension-koni-ui/hooks';
-import { getLatestSwapQuote, handleSwapRequest, handleSwapStep, validateSwapProcess } from '@subwallet/extension-koni-ui/messaging/transaction/swap';
+import { generateOptimalProcess, getLatestSwapQuote, handleSwapRequest, handleSwapStep, validateSwapProcess } from '@subwallet/extension-koni-ui/messaging/transaction/swap';
 import { FreeBalance, FreeBalanceToEarn, TransactionContent, TransactionFooter } from '@subwallet/extension-koni-ui/Popup/Transaction/parts';
 import { CommonActionType, commonProcessReducer, DEFAULT_COMMON_PROCESS } from '@subwallet/extension-koni-ui/reducer';
 import { RootState } from '@subwallet/extension-koni-ui/stores';
@@ -390,8 +390,38 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
     activeModal(SWAP_CHOOSE_FEE_TOKEN_MODAL);
   }, [activeModal]);
 
-  const onSelectQuote = useCallback((quote: SwapQuote) => {
+  const onSelectQuote = useCallback(async (quote: SwapQuote) => {
     setCurrentQuote(quote);
+    const currentRequest: SwapRequest = {
+      address: fromValue,
+      pair: quote.pair,
+      fromAmount: quote.fromAmount,
+      slippage: currentSlippage.slippage.toNumber(),
+      recipient: recipientValue || undefined,
+      currentQuote: quote.provider
+    };
+
+    const optimalRequest = {
+      request: currentRequest,
+      selectedQuote: quote
+    };
+
+    try {
+      const processResult = await generateOptimalProcess(optimalRequest);
+
+      setOptimalSwapPath(processResult);
+
+      dispatchProcessState({
+        payload: {
+          steps: processResult.steps,
+          feeStructure: processResult.totalFee
+        },
+        type: CommonActionType.STEP_CREATE
+      });
+    } catch (error) {
+      console.error('generate Optimal Process failed:', error);
+    }
+
     setFeeOptions(quote.feeInfo.feeOptions);
     setCurrentFeeOption(quote.feeInfo.feeOptions?.[0]);
 
@@ -405,7 +435,7 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
         currentQuote: quote.provider
       };
     });
-  }, []);
+  }, [currentSlippage.slippage, fromValue, recipientValue]);
 
   const onSelectFeeOption = useCallback((slug: string) => {
     setCurrentFeeOption(slug);
@@ -972,6 +1002,7 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
             recipient: recipientValue || undefined
           };
 
+          console.log('currentRequest', currentRequest);
           handleSwapRequest(currentRequest).then((result) => {
             if (sync) {
               setCurrentQuoteRequest(currentRequest);

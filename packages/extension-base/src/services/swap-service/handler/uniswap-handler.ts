@@ -4,14 +4,16 @@
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
 import { ChainType, EvmSignatureRequest, ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
 import { validateTypedSignMessageDataV3V4 } from '@subwallet/extension-base/core/logic-validation';
-import { BaseStepDetail, BasicTxErrorType, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, OptimalSwapPathParams, SwapBaseTxData, SwapProviderId, SwapStepType, SwapSubmitParams, SwapSubmitStepData, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
+import { BaseStepDetail, BasicTxErrorType, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, HandleYieldStepData, OptimalSwapPathParams, SwapBaseTxData, SwapProviderId, SwapStepType, SwapSubmitParams, SwapSubmitStepData, TokenSpendingApprovalParams, TransactionData, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
 import { getId } from '@subwallet/extension-base/utils/getId';
 import keyring from '@subwallet/ui-keyring';
+import BigNumber from 'bignumber.js';
 import { TransactionConfig } from 'web3-core';
 
 import { BalanceService } from '../../balance-service';
 import { ChainService } from '../../chain-service';
 import { _isNativeToken } from '../../chain-service/utils';
+import { calculateGasFeeParams } from '../../fee-service/utils';
 import RequestService from '../../request-service';
 import { EXTENSION_REQUEST_URL } from '../../request-service/constants';
 import { SwapBaseHandler, SwapBaseInterface } from './base-handler';
@@ -29,12 +31,52 @@ export type PermitData = {
 
 interface UniswapMetadata {
   permitData: PermitData;
-  quote: unknown;
+  quote: UniswapQuote;
   routing: string;
 }
 
+interface UniswapQuote {
+  chainId: number;
+  input: {
+    amount: string;
+    token: string;
+  };
+  output: {
+    amount: string;
+    token: string;
+  };
+}
 interface SwapResponse {
   swap: TransactionConfig
+}
+
+interface CheckApprovalResponse {
+  requestId: string;
+  approval: any;
+  cancel: any;
+}
+
+async function fetchCheckApproval (walletAddress: string, fromAmount: string, quote: UniswapQuote): Promise<CheckApprovalResponse> {
+  const chainId = quote.chainId;
+  const response = await fetch(`${API_URL}/check_approval`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      walletAddress,
+      amount: BigNumber(fromAmount).multipliedBy(2).toString(),
+      token: quote.input.token,
+      chainId: chainId,
+      tokenOut: quote.output.token,
+      tokenOutChainId: chainId
+    })
+  });
+
+  const data = await response.json() as CheckApprovalResponse;
+
+  return data;
 }
 
 export class UniswapHandler implements SwapBaseInterface {
@@ -68,8 +110,30 @@ export class UniswapHandler implements SwapBaseInterface {
 
   generateOptimalProcess (params: OptimalSwapPathParams): Promise<CommonOptimalPath> {
     return this.swapBaseHandler.generateOptimalProcess(params, [
+      this.getApprovalStep,
       this.getSubmitStep
     ]);
+  }
+
+  async getApprovalStep (params: OptimalSwapPathParams): Promise<[BaseStepDetail, CommonStepFeeInfo] | undefined> {
+    if (params.selectedQuote) {
+      const walletAddress = params.request.address;
+      const fromAmount = params.selectedQuote.fromAmount;
+      const { quote } = params.selectedQuote.metadata as UniswapMetadata;
+
+      const checkApprovalResponse = await fetchCheckApproval(walletAddress, fromAmount, quote);
+
+      if (checkApprovalResponse.approval) {
+        const submitStep = {
+          name: 'Approve token',
+          type: CommonStepType.TOKEN_APPROVAL
+        };
+
+        return Promise.resolve([submitStep, params.selectedQuote.feeInfo]);
+      }
+    }
+
+    return Promise.resolve(undefined);
   }
 
   async getSubmitStep (params: OptimalSwapPathParams): Promise<[BaseStepDetail, CommonStepFeeInfo] | undefined> {
@@ -101,7 +165,7 @@ export class UniswapHandler implements SwapBaseInterface {
           case CommonStepType.DEFAULT:
             return Promise.resolve([]);
           case CommonStepType.TOKEN_APPROVAL:
-            return Promise.reject(new TransactionError(BasicTxErrorType.UNSUPPORTED));
+            return Promise.resolve([]);
           default:
             return this.swapBaseHandler.validateSwapStep(params, isXcmOk, index);
         }
@@ -126,6 +190,8 @@ export class UniswapHandler implements SwapBaseInterface {
     switch (type) {
       case CommonStepType.DEFAULT:
         return Promise.reject(new TransactionError(BasicTxErrorType.UNSUPPORTED));
+      case CommonStepType.TOKEN_APPROVAL:
+        return this.tokenApproveSpending(params);
       case SwapStepType.SWAP:
         return this.handleSubmitStep(params);
       default:
@@ -133,10 +199,58 @@ export class UniswapHandler implements SwapBaseInterface {
     }
   }
 
+  private async tokenApproveSpending (params: SwapSubmitParams): Promise<HandleYieldStepData> {
+    const fromAsset = this.chainService.getAssetBySlug(params.quote.pair.from);
+    const walletAddress = params.address;
+    const fromAmount = params.quote.fromAmount;
+    const { quote } = params.quote.metadata as UniswapMetadata;
+
+    const checkApprovalResponse = await fetchCheckApproval(walletAddress, fromAmount, quote);
+    let transactionConfig: TransactionConfig = {} as TransactionConfig;
+
+    const approval = checkApprovalResponse.approval as TransactionConfig;
+
+    if (approval) {
+      const evmApi = this.chainService.getEvmApi(fromAsset.originChain);
+      const priority = await calculateGasFeeParams(evmApi, evmApi.chainSlug);
+
+      transactionConfig = {
+        from: approval.from,
+        to: approval.to,
+        value: approval.value,
+        data: approval.data,
+        gasPrice: priority.gasPrice,
+        maxFeePerGas: priority.maxFeePerGas?.toString(),
+        maxPriorityFeePerGas: priority.maxPriorityFeePerGas?.toString()
+      };
+      const gasLimit = await evmApi.api.eth.estimateGas(transactionConfig).catch(() => 200000);
+
+      transactionConfig.gas = gasLimit.toString();
+    }
+
+    const chain = fromAsset.originChain;
+
+    const _data: TokenSpendingApprovalParams = {
+      spenderAddress: quote.output.token,
+      contractAddress: quote.input.token,
+      amount: params.quote.fromAmount,
+      owner: params.address,
+      chain: quote.chainId.toString()
+    };
+
+    return Promise.resolve({
+      txChain: chain,
+      extrinsicType: ExtrinsicType.TOKEN_SPENDING_APPROVAL,
+      extrinsic: transactionConfig,
+      txData: _data,
+      transferNativeAmount: '0',
+      chainType: ChainType.EVM
+    });
+  }
+
   public async handleSubmitStep (params: SwapSubmitParams): Promise<SwapSubmitStepData> {
     const fromAsset = this.chainService.getAssetBySlug(params.quote.pair.from);
 
-    console.log('header', headers);
     const { permitData, quote, routing } = params.quote.metadata as UniswapMetadata;
 
     let signature;

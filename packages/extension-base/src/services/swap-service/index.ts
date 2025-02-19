@@ -89,7 +89,7 @@ export class SwapService implements ServiceWithProcessInterface, StoppableServic
     if (!params.selectedQuote) {
       return this.getDefaultProcess(params);
     } else {
-      const providerId = params.selectedQuote.provider.id;
+      const providerId = params.request.currentQuote?.id || params.selectedQuote.provider.id;
       const handler = this.handlers[providerId];
 
       if (handler) {
@@ -106,7 +106,6 @@ export class SwapService implements ServiceWithProcessInterface, StoppableServic
     * 2. Select the best quote
     * 3. Generate optimal process for that quote
     * */
-
     const swapQuoteResponse = await this.getLatestQuotes(request);
 
     const optimalProcess = await this.generateOptimalProcess({
