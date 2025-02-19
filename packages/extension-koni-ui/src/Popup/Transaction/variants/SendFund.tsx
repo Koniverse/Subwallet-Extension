@@ -402,6 +402,7 @@ const Component = ({ className = '', isAllAccount, targetAccountProxy }: Compone
 
       if (part.destChain) {
         form.resetFields(['to']);
+        setCurrentNonNativeTokenPayFee(undefined);
       }
 
       if (part.from || part.destChain) {
