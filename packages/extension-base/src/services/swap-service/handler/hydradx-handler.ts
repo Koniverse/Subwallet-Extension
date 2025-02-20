@@ -177,6 +177,8 @@ export class HydradxHandler implements SwapBaseInterface {
 
       return [step, fee];
     } catch (e) {
+      console.error('Error creating xcm step', e);
+
       return undefined;
     }
   }
@@ -250,9 +252,9 @@ export class HydradxHandler implements SwapBaseInterface {
 
   generateOptimalProcess (params: OptimalSwapPathParams): Promise<CommonOptimalPath> {
     return this.swapBaseHandler.generateOptimalProcess(params, [
-      this.getXcmStep,
+      this.getXcmStep.bind(this),
       // this.getFeeOptionStep.bind(this),
-      this.getSubmitStep
+      this.getSubmitStep.bind(this)
     ]);
   }
 
