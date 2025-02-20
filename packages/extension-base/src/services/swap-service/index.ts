@@ -185,7 +185,7 @@ export class SwapService implements ServiceWithProcessInterface, StoppableServic
           this.handlers[providerId] = new SimpleSwapHandler(this.chainService, this.state.balanceService, this.state.feeService);
           break;
         case SwapProviderId.UNISWAP:
-          this.handlers[providerId] = new UniswapHandler(this.chainService, this.state.balanceService, this.state.requestService);
+          this.handlers[providerId] = new UniswapHandler(this.chainService, this.state.balanceService, this.state.requestService, this.state.feeService);
           break;
         default:
           throw new Error('Unsupported provider');

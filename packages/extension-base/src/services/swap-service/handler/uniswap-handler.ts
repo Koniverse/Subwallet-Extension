@@ -4,7 +4,7 @@
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
 import { ChainType, EvmSignatureRequest, ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
 import { validateTypedSignMessageDataV3V4 } from '@subwallet/extension-base/core/logic-validation';
-import { BaseStepDetail, BasicTxErrorType, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, HandleYieldStepData, OptimalSwapPathParams, SwapBaseTxData, SwapProviderId, SwapStepType, SwapSubmitParams, SwapSubmitStepData, TokenSpendingApprovalParams, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
+import { BaseStepDetail, BasicTxErrorType, CommonOptimalPath, CommonStepFeeInfo, CommonStepType, FeeOptionKey, HandleYieldStepData, OptimalSwapPathParams, SwapBaseTxData, SwapProviderId, SwapStepType, SwapSubmitParams, SwapSubmitStepData, TokenSpendingApprovalParams, ValidateSwapProcessParams } from '@subwallet/extension-base/types';
 import { getId } from '@subwallet/extension-base/utils/getId';
 import keyring from '@subwallet/ui-keyring';
 import BigNumber from 'bignumber.js';
@@ -13,6 +13,7 @@ import { TransactionConfig } from 'web3-core';
 import { BalanceService } from '../../balance-service';
 import { ChainService } from '../../chain-service';
 import { _isNativeToken } from '../../chain-service/utils';
+import FeeService from '../../fee-service/service';
 import { calculateGasFeeParams } from '../../fee-service/utils';
 import RequestService from '../../request-service';
 import { EXTENSION_REQUEST_URL } from '../../request-service/constants';
@@ -84,10 +85,11 @@ export class UniswapHandler implements SwapBaseInterface {
   public requestService: RequestService;
 
   providerSlug: SwapProviderId;
-  constructor (chainService: ChainService, balanceService: BalanceService, requestSerive: RequestService) {
+  constructor (chainService: ChainService, balanceService: BalanceService, requestSerive: RequestService, feeService: FeeService) {
     this.swapBaseHandler = new SwapBaseHandler({
       chainService,
       balanceService,
+      feeService,
       providerName: 'Uniswap',
       providerSlug: SwapProviderId.UNISWAP
     });
@@ -102,6 +104,10 @@ export class UniswapHandler implements SwapBaseInterface {
 
   get balanceService () {
     return this.swapBaseHandler.balanceService;
+  }
+
+  get feeService () {
+    return this.swapBaseHandler.feeService;
   }
 
   get providerInfo () {
@@ -220,8 +226,8 @@ export class UniswapHandler implements SwapBaseInterface {
         value: approval.value,
         data: approval.data,
         gasPrice: priority.gasPrice,
-        maxFeePerGas: priority.maxFeePerGas?.toString(),
-        maxPriorityFeePerGas: priority.maxPriorityFeePerGas?.toString()
+        maxFeePerGas: priority.options?.[FeeOptionKey.AVERAGE].maxFeePerGas?.toString(),
+        maxPriorityFeePerGas: priority.options?.[FeeOptionKey.AVERAGE].toString()
       };
       const gasLimit = await evmApi.api.eth.estimateGas(transactionConfig).catch(() => 200000);
 
