@@ -100,6 +100,8 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
 
   const [quoteOptions, setQuoteOptions] = useState<SwapQuote[]>([]);
   const [currentQuote, setCurrentQuote] = useState<SwapQuote | undefined>(undefined);
+  const [tempQuote, setTempQuote] = useState<SwapQuote | undefined>(undefined);
+
   const [quoteAliveUntil, setQuoteAliveUntil] = useState<number | undefined>(undefined);
   const [currentQuoteRequest, setCurrentQuoteRequest] = useState<SwapRequest | undefined>(undefined);
   const [feeOptions, setFeeOptions] = useState<string[] | undefined>([]);
@@ -118,6 +120,8 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
   const [handleRequestLoading, setHandleRequestLoading] = useState(true);
   const [requestUserInteractToContinue, setRequestUserInteractToContinue] = useState<boolean>(false);
   const [isScrollEnd, setIsScrollEnd] = useState<boolean>(false);
+  const [confirmQuoteLoading, setConfirmQuoteLoading] = useState(false);
+
   const continueRefreshQuoteRef = useRef<boolean>(false);
   const { token } = useTheme() as Theme;
 
@@ -417,8 +421,9 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
     [fromValue, currentSlippage.slippage, recipientValue]
   );
 
-  const onSelectQuote = useCallback(
+  const onConfirmationItem = useCallback(
     async (quote: SwapQuote) => {
+      setConfirmQuoteLoading(true);
       const processResult = await handleGenerateOptimalProcess(quote);
 
       if (!processResult) {
@@ -448,9 +453,16 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
           currentQuote: quote.provider
         };
       });
+
+      setConfirmQuoteLoading(false);
+      inactiveModal(SWAP_ALL_QUOTES_MODAL);
     },
-    [handleGenerateOptimalProcess, dispatchProcessState]
+    [handleGenerateOptimalProcess, inactiveModal]
   );
+
+  const onSelectQuote = useCallback((quote: SwapQuote) => {
+    setTempQuote(quote);
+  }, []);
 
   const onSelectFeeOption = useCallback((slug: string) => {
     setCurrentFeeOption(slug);
@@ -1032,6 +1044,7 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
 
               setQuoteOptions(result.quote.quotes);
               setCurrentQuote(result.quote.optimalQuote);
+              setTempQuote(result.quote.optimalQuote);
               setQuoteAliveUntil(result.quote.aliveUntil);
               setFeeOptions(result.quote.optimalQuote?.feeInfo?.feeOptions || []);
               setCurrentFeeOption(result.quote.optimalQuote?.feeInfo?.feeOptions?.[0]);
@@ -1643,10 +1656,12 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
       />
       <SwapQuotesSelectorModal
         items={quoteOptions}
+        loading={confirmQuoteLoading}
         modalId={SWAP_ALL_QUOTES_MODAL}
+        onConfirmationItem={onConfirmationItem}
         onSelectItem={onSelectQuote}
         optimalQuoteItem={optimalQuoteRef.current}
-        selectedItem={currentQuote}
+        selectedItem={tempQuote}
       />
       <SwapTermsOfServiceModal onOk={onAfterConfirmTermModal} />
       <SwapIdleWarningModal
