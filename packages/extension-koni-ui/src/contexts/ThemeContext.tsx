@@ -43,6 +43,18 @@ const GlobalStyle = createGlobalStyle<ThemeProps>(({ theme }) => {
       fontSize: token.size
     },
 
+    '.main-page-container': {
+      '.main-layout-content': {
+        border: `${token.lineWidth}px ${token.lineType} ${token.colorBgInput}`,
+        height: 599,
+        width: 388,
+        maxWidth: '100%',
+        overflow: 'hidden',
+        marginLeft: 'auto',
+        marginRight: 'auto'
+      }
+    },
+
     '.ant-sw-modal .ant-sw-modal-header': {
       borderRadius: '24px 24px 0 0'
     },

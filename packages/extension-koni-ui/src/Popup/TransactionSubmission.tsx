@@ -5,7 +5,7 @@ import { ProcessTransactionData, ResponseSubscribeProcessById } from '@subwallet
 import { CloseIcon, Layout, PageWrapper } from '@subwallet/extension-koni-ui/components';
 import { useDefaultNavigate } from '@subwallet/extension-koni-ui/hooks';
 import { cancelSubscription, subscribeProcess } from '@subwallet/extension-koni-ui/messaging';
-import { ThemeProps } from '@subwallet/extension-koni-ui/types';
+import { NotificationScreenParam, ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { isStepCompleted, isStepFailed } from '@subwallet/extension-koni-ui/utils';
 import { PageIcon } from '@subwallet/react-ui';
 import { SwIconProps } from '@subwallet/react-ui/es/icon';
@@ -32,7 +32,14 @@ const Component: React.FC<Props> = (props: Props) => {
 
   const viewProgress = useCallback(
     () => {
-      navigate(`/settings/notification?transaction-process-id=${transactionProcessId}`);
+      navigate('/settings/notification', {
+        state: {
+          transactionProcess: {
+            processId: transactionProcessId,
+            triggerTime: `${Date.now()}`
+          }
+        } as NotificationScreenParam
+      });
     },
     [navigate, transactionProcessId]
   );

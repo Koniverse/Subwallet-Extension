@@ -112,16 +112,6 @@ export const MainWrapper = styled(Component)<ThemeProps>(({ theme: { token } }: 
     }
   },
 
-  '.main-layout-content': {
-    border: `${token.lineWidth}px ${token.lineType} ${token.colorBgInput}`,
-    height: 599,
-    width: 388,
-    maxWidth: '100%',
-    overflow: 'hidden',
-    marginLeft: 'auto',
-    marginRight: 'auto'
-  },
-
   '.web-layout-container': {
     height: '100%'
   }
