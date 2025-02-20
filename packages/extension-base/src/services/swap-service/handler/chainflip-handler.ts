@@ -9,12 +9,14 @@ import { getERC20TransactionObject, getEVMTransactionObject } from '@subwallet/e
 import { createTransferExtrinsic } from '@subwallet/extension-base/services/balance-service/transfer/token';
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
 import { _getAssetSymbol, _getContractAddressOfToken, _isChainSubstrateCompatible, _isNativeToken } from '@subwallet/extension-base/services/chain-service/utils';
+import FeeService from '@subwallet/extension-base/services/fee-service/service';
 import { SwapBaseHandler, SwapBaseInterface } from '@subwallet/extension-base/services/swap-service/handler/base-handler';
 import { getChainflipSwap } from '@subwallet/extension-base/services/swap-service/utils';
 import { BasicTxErrorType, TransactionData } from '@subwallet/extension-base/types';
 import { BaseStepDetail, CommonOptimalPath, CommonStepFeeInfo, CommonStepType } from '@subwallet/extension-base/types/service-base';
 import { ChainflipSwapTxData, OptimalSwapPathParams, SwapProviderId, SwapStepType, SwapSubmitParams, SwapSubmitStepData, ValidateSwapProcessParams } from '@subwallet/extension-base/types/swap';
 import { _reformatAddressWithChain } from '@subwallet/extension-base/utils';
+import { getId } from '@subwallet/extension-base/utils/getId';
 import BigNumber from 'bignumber.js';
 
 import { SubmittableExtrinsic } from '@polkadot/api/types';
@@ -42,10 +44,11 @@ export class ChainflipSwapHandler implements SwapBaseInterface {
   providerSlug: SwapProviderId;
   private baseUrl: string;
 
-  constructor (chainService: ChainService, balanceService: BalanceService, isTestnet = true) {
+  constructor (chainService: ChainService, balanceService: BalanceService, feeService: FeeService, isTestnet = true) {
     this.swapBaseHandler = new SwapBaseHandler({
       chainService,
       balanceService,
+      feeService,
       providerName: isTestnet ? 'Chainflip Testnet' : 'Chainflip',
       providerSlug: isTestnet ? SwapProviderId.CHAIN_FLIP_TESTNET : SwapProviderId.CHAIN_FLIP_MAINNET
     });
@@ -180,12 +183,32 @@ export class ChainflipSwapHandler implements SwapBaseInterface {
 
       extrinsic = submittableExtrinsic as SubmittableExtrinsic<'promise'>;
     } else {
+      const id = getId();
+      const feeInfo = await this.swapBaseHandler.feeService.subscribeChainFee(id, chainInfo.slug, 'evm');
+
       if (_isNativeToken(fromAsset)) {
-        const [transactionConfig] = await getEVMTransactionObject(chainInfo, address, depositAddress, quote.fromAmount, false, this.chainService.getEvmApi(chainInfo.slug));
+        const [transactionConfig] = await getEVMTransactionObject({
+          chain: chainInfo.slug,
+          evmApi: this.chainService.getEvmApi(chainInfo.slug),
+          from: address,
+          to: depositAddress,
+          value: quote.fromAmount,
+          feeInfo,
+          transferAll: false
+        });
 
         extrinsic = transactionConfig;
       } else {
-        const [transactionConfig] = await getERC20TransactionObject(_getContractAddressOfToken(fromAsset), chainInfo, address, depositAddress, quote.fromAmount, false, this.chainService.getEvmApi(chainInfo.slug));
+        const [transactionConfig] = await getERC20TransactionObject({
+          assetAddress: _getContractAddressOfToken(fromAsset),
+          chain: chainInfo.slug,
+          evmApi: this.chainService.getEvmApi(chainInfo.slug),
+          from: address,
+          to: depositAddress,
+          value: quote.fromAmount,
+          feeInfo,
+          transferAll: false
+        });
 
         extrinsic = transactionConfig;
       }
