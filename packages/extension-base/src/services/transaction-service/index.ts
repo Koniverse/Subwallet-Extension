@@ -21,13 +21,15 @@ import { getBaseTransactionInfo, getTransactionId, isSubstrateTransaction, isTon
 import { SWTransaction, SWTransactionInput, SWTransactionResponse, TransactionEmitter, TransactionEventMap, TransactionEventResponse, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
 import { getExplorerLink, parseTransactionData } from '@subwallet/extension-base/services/transaction-service/utils';
 import { isWalletConnectRequest } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
-import { AccountJson, BasicTxErrorType, BasicTxWarningCode, BriefProcessStep, LeavePoolAdditionalData, ProcessStep, ProcessTransactionData, RequestStakePoolingBonding, RequestYieldStepSubmit, SpecialYieldPoolInfo, StepStatus, SubmitJoinNominationPool, Web3Transaction, YieldPoolType } from '@subwallet/extension-base/types';
+import { AccountJson, BasicTxErrorType, BasicTxWarningCode, BriefProcessStep, EvmFeeInfo, LeavePoolAdditionalData, ProcessStep, ProcessTransactionData, RequestStakePoolingBonding, RequestYieldStepSubmit, SpecialYieldPoolInfo, StepStatus, SubmitJoinNominationPool, SubstrateTipInfo, Web3Transaction, YieldPoolType } from '@subwallet/extension-base/types';
 import { _isRuntimeUpdated, anyNumberToBN, pairToAccount, reformatAddress } from '@subwallet/extension-base/utils';
 import { mergeTransactionAndSignature } from '@subwallet/extension-base/utils/eth/mergeTransactionAndSignature';
 import { isContractAddress, parseContractInput } from '@subwallet/extension-base/utils/eth/parseTransaction';
+import { getId } from '@subwallet/extension-base/utils/getId';
 import { BN_ZERO } from '@subwallet/extension-base/utils/number';
 import keyring from '@subwallet/ui-keyring';
 import { Cell } from '@ton/core';
+import BigN from 'bignumber.js';
 import { addHexPrefix } from 'ethereumjs-util';
 import { ethers, TransactionLike } from 'ethers';
 import EventEmitter from 'eventemitter3';
@@ -121,6 +123,8 @@ export default class TransactionService {
     }
 
     const transaction = transactionInput.transaction;
+    const nativeTokenInfo = this.state.chainService.getNativeTokenInfo(chain);
+    const tokenPayFeeInfo = transactionInput.nonNativeTokenPayFeeSlug ? this.chainService.getAssetBySlug(transactionInput.nonNativeTokenPayFeeSlug) : undefined;
 
     // Check duplicated transaction
     validationResponse.errors.push(...this.checkDuplicate(transactionInput));
@@ -132,6 +136,7 @@ export default class TransactionService {
       validationResponse.errors.push(new TransactionError(BasicTxErrorType.INTERNAL_ERROR, t('Cannot find network')));
     }
 
+    const substrateApi = this.state.chainService.getSubstrateApi(chainInfo.slug);
     const evmApi = this.state.chainService.getEvmApi(chainInfo.slug);
     const tonApi = this.state.chainService.getTonApi(chainInfo.slug);
     const isNoEvmApi = transaction && !isSubstrateTransaction(transaction) && !isTonTransaction(transaction) && !evmApi; // todo: should split isEvmTx && isNoEvmApi. Because other chains type also has no Evm Api
@@ -142,14 +147,16 @@ export default class TransactionService {
     }
 
     // Estimate fee for transaction
-    validationResponse.estimateFee = await estimateFeeForTransaction(validationResponse, transaction, chainInfo, evmApi);
+    const id = getId();
+    const feeInfo = await this.state.feeService.subscribeChainFee(id, chain, 'evm') as EvmFeeInfo;
+
+    validationResponse.estimateFee = await estimateFeeForTransaction(validationResponse, transaction, chainInfo, evmApi, substrateApi, feeInfo, nativeTokenInfo, tokenPayFeeInfo, transactionInput.isTransferLocalTokenAndPayThatTokenAsFee);
 
     const chainInfoMap = this.state.chainService.getChainInfoMap();
 
     // Check account signing transaction
     checkSigningAccountForTransaction(validationResponse, chainInfoMap);
 
-    const nativeTokenInfo = this.state.chainService.getNativeTokenInfo(chain);
     const nativeTokenAvailable = await this.state.balanceService.getTransferableBalance(address, chain, nativeTokenInfo.slug, extrinsicType);
 
     // Check available balance against transaction fee
@@ -1005,6 +1012,14 @@ export default class TransactionService {
       payload.from = address;
     }
 
+    if (!payload.estimateGas) {
+      if (payload.maxFeePerGas) {
+        payload.estimateGas = new BigN(anyNumberToBN(payload.maxFeePerGas).toNumber()).multipliedBy(payload.gas || '0').toFixed(0);
+      } else {
+        payload.estimateGas = new BigN(anyNumberToBN(payload.gasPrice).toNumber()).multipliedBy(payload.gas || '0').toFixed(0);
+      }
+    }
+
     const isExternal = !!account.isExternal;
     const isInjected = !!account.isInjected;
 
@@ -1180,7 +1195,10 @@ export default class TransactionService {
     return emitter;
   }
 
-  private signAndSendSubstrateTransaction ({ address, chain, id, signAfterCreate, step, transaction, url }: SWTransaction): TransactionEmitter {
+  private signAndSendSubstrateTransaction ({ address, chain, feeCustom, id, nonNativeTokenPayFeeSlug, signAfterCreate, step, transaction, url }: SWTransaction): TransactionEmitter {
+    const tip = (feeCustom as SubstrateTipInfo)?.tip || '0';
+    const feeAssetId = nonNativeTokenPayFeeSlug ? this.state.chainService.getAssetBySlug(nonNativeTokenPayFeeSlug).metadata?.multilocation as Record<string, any> : undefined;
+
     const emitter = new EventEmitter<TransactionEventMap>();
     const eventData: TransactionEventResponse = {
       id,
@@ -1206,7 +1224,9 @@ export default class TransactionService {
           } as SignerResult;
         }
       } as Signer,
-      withSignedTransaction: true
+      tip,
+      withSignedTransaction: true,
+      assetId: feeAssetId
     };
 
     // if (_isRuntimeUpdated(signedExtensions)) {
