@@ -3,7 +3,7 @@
 
 import { ChainType, ExtrinsicDataTypeMap, ExtrinsicStatus, ExtrinsicType, FeeData, ValidateTransactionResponse } from '@subwallet/extension-base/background/KoniTypes';
 import { TonTransactionConfig } from '@subwallet/extension-base/services/balance-service/transfer/ton-transfer';
-import { BaseRequestSign, BriefProcessStep, TransactionFee, ProcessTransactionData } from '@subwallet/extension-base/types';
+import { BaseRequestSign, BriefProcessStep, ProcessTransactionData, TransactionFee } from '@subwallet/extension-base/types';
 import EventEmitter from 'eventemitter3';
 import { TransactionConfig } from 'web3-core';
 
