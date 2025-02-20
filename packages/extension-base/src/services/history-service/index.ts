@@ -353,7 +353,7 @@ export class HistoryService implements StoppableServiceInterface, PersistDataSer
 
     histories
       .filter((history) => {
-        return [ExtrinsicStatus.PROCESSING, ExtrinsicStatus.SUBMITTING, ExtrinsicStatus.UNKNOWN].includes(history.status);
+        return [ExtrinsicStatus.PROCESSING, ExtrinsicStatus.SUBMITTING].includes(history.status);
       })
       .filter((history) => {
         if (history.type === ExtrinsicType.TRANSFER_XCM) {

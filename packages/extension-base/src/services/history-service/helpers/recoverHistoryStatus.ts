@@ -52,7 +52,7 @@ const substrateRecover = async (history: TransactionHistoryItem, chainService: C
           const blockHash = (await api.rpc.chain.getBlockHash(startBlock + i)).toHex();
           const block = await api.rpc.chain.getBlock(blockHash);
 
-          const extrinsics = block.block.extrinsics;
+          const extrinsics = block.block.extrinsics.toArray();
           let index: number | undefined;
 
           for (const [idx, extrinsic] of Object.entries(extrinsics)) {
