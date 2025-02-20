@@ -390,9 +390,8 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
     activeModal(SWAP_CHOOSE_FEE_TOKEN_MODAL);
   }, [activeModal]);
 
-  const onSelectQuote = useCallback((quote: SwapQuote) => {
-    setCurrentQuote(quote);
-    (async () => {
+  const handleGenerateOptimalProcess = useCallback(
+    async (quote: SwapQuote) => {
       try {
         const currentRequest: SwapRequest = {
           address: fromValue,
@@ -422,22 +421,27 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
       } catch (error) {
         console.error('generate Optimal Process failed:', error);
       }
-    })().catch((e) => console.error(e));
+    }, [fromValue, currentSlippage.slippage, recipientValue, dispatchProcessState]);
 
-    setFeeOptions(quote.feeInfo.feeOptions);
-    setCurrentFeeOption(quote.feeInfo.feeOptions?.[0]);
+  const onSelectQuote = useCallback(
+    (quote: SwapQuote) => {
+      setCurrentQuote(quote);
+      handleGenerateOptimalProcess(quote).catch((e) => console.error(e));
 
-    setCurrentQuoteRequest((oldRequest) => {
-      if (!oldRequest) {
-        return undefined;
-      }
+      setFeeOptions(quote.feeInfo.feeOptions);
+      setCurrentFeeOption(quote.feeInfo.feeOptions?.[0]);
 
-      return {
-        ...oldRequest,
-        currentQuote: quote.provider
-      };
-    });
-  }, [currentSlippage.slippage, fromValue, recipientValue]);
+      setCurrentQuoteRequest((oldRequest) => {
+        if (!oldRequest) {
+          return undefined;
+        }
+
+        return {
+          ...oldRequest,
+          currentQuote: quote.provider
+        };
+      });
+    }, [handleGenerateOptimalProcess]);
 
   const onSelectFeeOption = useCallback((slug: string) => {
     setCurrentFeeOption(slug);
