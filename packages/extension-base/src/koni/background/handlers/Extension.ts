@@ -3,6 +3,7 @@
 
 import { Common } from '@ethereumjs/common';
 import { LegacyTransaction } from '@ethereumjs/tx';
+import { COMMON_CHAIN_SLUGS } from '@subwallet/chain-list';
 import { _AssetRef, _AssetType, _ChainAsset, _ChainInfo, _MultiChainAsset } from '@subwallet/chain-list/types';
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
 import { withErrorLog } from '@subwallet/extension-base/background/handlers/helpers';
@@ -40,12 +41,12 @@ import { _ChainApiStatus, _ChainConnectionStatus, _ChainState, _NetworkUpsertPar
 import { _getAssetDecimals, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getContractAddressOfToken, _getEvmChainId, _getTokenOnChainAssetId, _getXcmAssetMultilocation, _isAssetSmartContractNft, _isBridgedToken, _isChainEvmCompatible, _isChainSubstrateCompatible, _isCustomAsset, _isLocalToken, _isMantaZkAsset, _isNativeToken, _isPureEvmChain, _isTokenEvmSmartContract, _isTokenTransferredByEvm, _isTokenTransferredByTon } from '@subwallet/extension-base/services/chain-service/utils';
 import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { calculateToAmountByReservePool } from '@subwallet/extension-base/services/fee-service/utils';
+import { getAssetHubTokensCanPayFee, getHydrationTokensCanPayFee } from '@subwallet/extension-base/services/fee-service/utils/tokenPayFee';
 import { ClaimPolygonBridgeNotificationMetadata, NotificationSetup } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import { AppBannerData, AppConfirmationData, AppPopupData } from '@subwallet/extension-base/services/mkt-campaign-service/types';
 import { EXTENSION_REQUEST_URL } from '@subwallet/extension-base/services/request-service/constants';
 import { AuthUrls } from '@subwallet/extension-base/services/request-service/types';
 import { DEFAULT_AUTO_LOCK_TIME } from '@subwallet/extension-base/services/setting-service/constants';
-import { checkLiquidityForPool, estimateTokensForPool, getReserveForPool } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
 import { SWTransaction, SWTransactionResponse, SWTransactionResult, TransactionEmitter, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
 import { isProposalExpired, isSupportWalletConnectChain, isSupportWalletConnectNamespace } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
 import { ResultApproveWalletConnectSession, WalletConnectNotSupportRequest, WalletConnectSessionRequest } from '@subwallet/extension-base/services/wallet-connect-service/types';
@@ -1627,15 +1628,7 @@ export default class KoniExtension {
     const substrateApi = this.#koniState.getSubstrateApi(chain);
     const address = reformatAddress(_address);
 
-    // ensure nativeTokenInfo and localTokenInfo have multi-location metadata beforehand to improve performance.
     const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalance(address, chain);
-    const tokensHasBalanceSlug = Object.keys(tokensHasBalanceInfoMap);
-    const tokenInfos = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => (
-      token.originChain === chain &&
-      token.assetType !== _AssetType.NATIVE &&
-      token.metadata &&
-      token.metadata.multilocation
-    ));
     const nativeTokenInfo = chainService.getNativeTokenInfo(chain);
     const nativeTokenBalanceInfo = {
       slug: nativeTokenInfo.slug,
@@ -1644,36 +1637,15 @@ export default class KoniExtension {
     } as TokenHasBalanceInfo;
     const tokensCanPayFee: TokenHasBalanceInfo[] = [nativeTokenBalanceInfo];
 
-    if (!ASSET_HUB_CHAIN_SLUGS.includes(chain) || !nativeTokenInfo.metadata || !nativeTokenInfo.metadata.multilocation) {
-      return tokensCanPayFee;
+    if (ASSET_HUB_CHAIN_SLUGS.includes(chain)) {
+      const appendList = await getAssetHubTokensCanPayFee(substrateApi, chainService, nativeTokenInfo, tokensHasBalanceInfoMap, feeAmount);
+
+      tokensCanPayFee.push(...appendList);
+    } else if (chain === COMMON_CHAIN_SLUGS.HYDRADX || chain === COMMON_CHAIN_SLUGS.HYDRADX_TESTNET) {
+      const appendList = await getHydrationTokensCanPayFee(substrateApi, chainService, nativeTokenInfo, tokensHasBalanceInfoMap, feeAmount);
+
+      tokensCanPayFee.push(...appendList);
     }
-
-    await Promise.all(tokenInfos.map(async (tokenInfo) => {
-      const tokenSlug = tokenInfo.slug;
-      const reserve = await getReserveForPool(substrateApi.api, nativeTokenInfo, tokenInfo);
-
-      if (!reserve || !reserve[0] || !reserve[1] || reserve[0] === '0' || reserve[1] === '0') {
-        return;
-      }
-
-      const rate = new BigN(reserve[1]).div(reserve[0]).toFixed();
-      const tokenCanPayFee = {
-        slug: tokenSlug,
-        free: tokensHasBalanceInfoMap[tokenSlug].free,
-        rate
-      };
-
-      if (feeAmount === undefined) {
-        tokensCanPayFee.push(tokenCanPayFee);
-      } else {
-        const amount = estimateTokensForPool(feeAmount, reserve);
-        const liquidityError = checkLiquidityForPool(amount, reserve[0], reserve[1]);
-
-        if (!liquidityError) {
-          tokensCanPayFee.push(tokenCanPayFee);
-        }
-      }
-    }));
 
     return tokensCanPayFee;
   }
