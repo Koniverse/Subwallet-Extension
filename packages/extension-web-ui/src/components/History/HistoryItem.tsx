@@ -3,7 +3,9 @@
 
 import { _ChainInfo } from '@subwallet/chain-list/types';
 import { ExtrinsicType, TransactionAdditionalInfo, TransactionDirection } from '@subwallet/extension-base/background/KoniTypes';
+import { ClaimPolygonBridgeNotificationMetadata, NotificationActionType } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import { getExplorerLink } from '@subwallet/extension-base/services/transaction-service/utils';
+import { RequestClaimBridge } from '@subwallet/extension-base/types';
 import { AccountProxyAvatar } from '@subwallet/extension-web-ui/components';
 import { HistoryStatusMap } from '@subwallet/extension-web-ui/constants';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
@@ -48,6 +50,18 @@ function Component (
   const displayData = item.displayData;
   const { isWebUI } = useContext(ScreenContext);
   const { isShowBalance } = useSelector((state) => state.settings);
+
+  let amountValue = item?.amount?.value;
+
+  if (item.type === ExtrinsicType.CLAIM_BRIDGE) {
+    const additionalInfo = item.additionalInfo as RequestClaimBridge;
+
+    if (additionalInfo.notification.actionType === NotificationActionType.CLAIM_POLYGON_BRIDGE) {
+      const metadata = additionalInfo.notification.metadata as ClaimPolygonBridgeNotificationMetadata;
+
+      amountValue = metadata.amounts[0];
+    }
+  }
 
   const chainInfoMap = useSelector((state: RootState) => state.chainStore.chainInfoMap);
   const priceMap = useSelector((state: RootState) => state.price.priceMap);
@@ -103,7 +117,7 @@ function Component (
                 hide={!isShowBalance}
                 intOpacity={showAmount ? 1 : 0}
                 suffix={item?.amount?.symbol}
-                value={item?.amount?.value || '0'}
+                value={amountValue || '0'}
               />
               <Number
                 className={CN('__fee', {
