@@ -363,7 +363,16 @@ export default class TransactionService {
       this.onFailed({ ...data, errors: [...data.errors, new TransactionError(BasicTxErrorType.INTERNAL_ERROR)] });
 
       if (step) {
-        if (data.errors.find((error) => error.errorType === BasicTxErrorType.USER_REJECT_REQUEST)) {
+        const rejectError = data.errors.find((error) => {
+          // TODO: REFACTOR ERROR CODE
+          if ([BasicTxErrorType.UNABLE_TO_SIGN, BasicTxErrorType.USER_REJECT_REQUEST].includes(error.errorType)) {
+            return true;
+          }
+
+          return false;
+        })
+
+        if (rejectError) {
           this.deleteProcess(step);
         } else {
           this.updateProcessStepStatus(step, { status: StepStatus.FAILED });
