@@ -3,17 +3,19 @@
 
 import { _ChainInfo } from '@subwallet/chain-list/types';
 import { TransactionError } from '@subwallet/extension-base/background/errors/TransactionError';
-import { ExtrinsicType, NominationInfo } from '@subwallet/extension-base/background/KoniTypes';
+import { APIItemState, ExtrinsicType, NominationInfo } from '@subwallet/extension-base/background/KoniTypes';
 import { getCommission } from '@subwallet/extension-base/koni/api/staking/bonding/utils';
-import { _STAKING_ERA_LENGTH_MAP } from '@subwallet/extension-base/services/chain-service/constants';
+import { _EXPECTED_BLOCK_TIME, _STAKING_ERA_LENGTH_MAP } from '@subwallet/extension-base/services/chain-service/constants';
 import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import BaseParaStakingPoolHandler from '@subwallet/extension-base/services/earning-service/handlers/native-staking/base-para';
-import { BasicTxErrorType, EarningStatus, NativeYieldPoolInfo, SubmitJoinNativeStaking, TransactionData, UnstakingInfo, ValidatorInfo, YieldPoolInfo, YieldPositionInfo, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
+import { BasicTxErrorType, EarningRewardItem, EarningStatus, NativeYieldPoolInfo, SubmitJoinNativeStaking, TransactionData, UnstakingInfo, UnstakingStatus, ValidatorInfo, YieldPoolInfo, YieldPositionInfo, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
 import { balanceFormatter, formatNumber, reformatAddress } from '@subwallet/extension-base/utils';
 
 import { UnsubscribePromise } from '@polkadot/api-base/types/base';
 import { Codec } from '@polkadot/types/types';
 
+// todo: improve to check current lock amount, create an enum store CollatorStaking state
+// @ts-ignore
 interface FrameSupportTokensMiscIdAmountRuntimeFreezeReason {
   id: {
     CollatorStaking: string
@@ -24,6 +26,23 @@ interface FrameSupportTokensMiscIdAmountRuntimeFreezeReason {
 interface PalletCollatorStakingCandidateInfo {
   stake: string,
   stakers: string
+}
+
+interface PalletCollatorStakingUserStakeInfo {
+  stake: string,
+  maybeLastUnstake: string[], // amount and block
+  candidates: string[],
+  maybeLastRewardSession: string // unclaimed from session
+}
+
+interface PalletCollatorStakingCandidateStakeInfo {
+  session: string,
+  stake: string
+}
+
+interface PalletCollatorStakingReleaseRequest {
+  block: number,
+  amount: string
 }
 
 export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolHandler {
@@ -73,12 +92,10 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
       const unstakeDelay = substrateApi.api.consts.collatorStaking.stakeUnlockDelay.toString();
       const maxStakedCandidates = substrateApi.api.consts.collatorStaking.maxStakedCandidates.toString();
       const sessionTime = _STAKING_ERA_LENGTH_MAP[this.chain] || _STAKING_ERA_LENGTH_MAP.default; // in hours
-      const unstakingPeriod = parseInt(unstakeDelay) * sessionTime;
+      const blockTime = _EXPECTED_BLOCK_TIME[this.chain];
+      const unstakingPeriod = parseInt(unstakeDelay) * blockTime / 60 / 60;
 
-      const _minStake = await Promise.all([
-        substrateApi.api.query.collatorStaking.minStake()
-      ]);
-
+      const _minStake = await substrateApi.api.query.collatorStaking.minStake();
       const minStake = _minStake.toString();
       const minStakeToHuman = formatNumber(minStake, nativeToken.decimals || 0, balanceFormatter);
 
@@ -96,7 +113,7 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
             }
           ],
           maxCandidatePerFarmer: parseInt(maxStakedCandidates),
-          maxWithdrawalRequestPerFarmer: 1, // todo: recheck
+          maxWithdrawalRequestPerFarmer: 3, // todo: recheck
           earningThreshold: {
             join: minStake,
             defaultUnstake: '0',
@@ -104,8 +121,9 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
           },
           era: parseInt(currentSession),
           eraTime: sessionTime,
-          unstakingPeriod: unstakingPeriod
-          // tvl: totalStake.toString(), // todo
+          unstakingPeriod: unstakingPeriod,
+          totalApy: undefined
+          // tvl: totalStake.toString(),
           // inflation
         },
         maxPoolMembers: parseInt(maxStakers)
@@ -126,32 +144,44 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
 
   async subscribePoolPosition (useAddresses: string[], resultCallback: (rs: YieldPositionInfo) => void): Promise<VoidFunction> {
     let cancel = false;
-    const substrateApi = this.substrateApi;
+    const substrateApi = await this.substrateApi.isReady;
     const defaultInfo = this.baseInfo;
-    const unsub = await substrateApi.api.query.collatorStaking.candidateStake.multi(useAddresses, async (ledgers: Codec[]) => {
+    const unsub = await substrateApi.api.query.collatorStaking.userStake.multi(useAddresses, async (userStakes: Codec[]) => {
       if (cancel) {
         unsub();
 
         return;
       }
 
-      if (ledgers) {
-        await Promise.all(ledgers.map(async (candidateStake, i) => {
+      if (userStakes) {
+        await Promise.all(userStakes.map(async (_userStake, i) => {
+          const userStake = _userStake.toPrimitive() as unknown as PalletCollatorStakingUserStakeInfo;
           const owner = reformatAddress(useAddresses[i], 42);
 
-          resultCallback({ // todo: handle this
-            ...defaultInfo,
-            type: this.type,
-            address: owner,
-            balanceToken: this.nativeToken.slug,
-            totalStake: '0',
-            activeStake: '0',
-            unstakeBalance: '0',
-            status: EarningStatus.NOT_STAKING,
-            isBondedBefore: false,
-            nominations: [],
-            unstakings: []
-          });
+          if (userStake) {
+            const nominatorMetadata = await this.parseCollatorMetadata(this.chainInfo, useAddresses[i], substrateApi, userStake);
+
+            resultCallback({
+              ...defaultInfo,
+              ...nominatorMetadata,
+              address: owner,
+              type: this.type
+            });
+          } else {
+            resultCallback({
+              ...defaultInfo,
+              type: this.type,
+              address: owner,
+              balanceToken: this.nativeToken.slug,
+              totalStake: '0',
+              activeStake: '0',
+              unstakeBalance: '0',
+              status: EarningStatus.NOT_STAKING,
+              isBondedBefore: false,
+              nominations: [],
+              unstakings: []
+            });
+          }
         }));
       }
     });
@@ -162,10 +192,77 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
     };
   }
 
-  async parseCollatorMetadata () {
-    // todo
-    // collatorStaking.candidateStake
-    // collatorStaking.userStake
+  async parseCollatorMetadata (chainInfo: _ChainInfo, stakerAddress: string, substrateApi: _SubstrateApi, userStake: PalletCollatorStakingUserStakeInfo) {
+    const nominationList: NominationInfo[] = [];
+    const unstakingList: UnstakingInfo[] = [];
+    let unstakingBalance = BigInt(0);
+
+    const { candidates, stake } = userStake;
+
+    const [_minStake, _unstaking, _currentBlock, _currentTimestamp] = await Promise.all([
+      substrateApi.api.query.collatorStaking.minStake(),
+      substrateApi.api.query.collatorStaking.releaseQueues(stakerAddress),
+      substrateApi.api.query.system.number(),
+      substrateApi.api.query.timestamp.now()
+    ]);
+
+    const minStake = _minStake.toPrimitive() as string;
+    const stakingStatus = candidates && !!candidates.length ? EarningStatus.EARNING_REWARD : EarningStatus.NOT_EARNING;
+    const isBondedBefore = candidates && !!candidates.length;
+    const unstakings = _unstaking.toPrimitive() as unknown as PalletCollatorStakingReleaseRequest[];
+    const currentBlock = _currentBlock.toPrimitive() as number;
+    const currentTimestamp = _currentTimestamp.toPrimitive() as number;
+    const blockDurationMs = substrateApi.api.consts.aura.slotDuration.toPrimitive() as number;
+
+    if (candidates.length) {
+      await Promise.all(candidates.map(async (collatorAddress) => {
+        const _stakeInfo = await substrateApi.api.query.collatorStaking.candidateStake(collatorAddress, stakerAddress);
+        const stakeInfo = _stakeInfo.toPrimitive() as unknown as PalletCollatorStakingCandidateStakeInfo;
+        const activeStake = stakeInfo.stake.toString();
+
+        const earningStatus = BigInt(activeStake) > BigInt(0) && BigInt(activeStake) >= BigInt(minStake)
+          ? EarningStatus.EARNING_REWARD
+          : EarningStatus.NOT_EARNING;
+
+        nominationList.push({
+          status: earningStatus,
+          chain: chainInfo.slug,
+          validatorAddress: collatorAddress,
+          activeStake,
+          validatorMinStake: minStake,
+          hasUnstaking: !!unstakings.length
+        });
+      }));
+    }
+
+    if (unstakings.length) {
+      unstakings.forEach((unstaking) => {
+        const releaseBlock = unstaking.block;
+        const unstakeAmount = unstaking.amount;
+        const isClaimable = currentBlock >= releaseBlock;
+        const targetTimestampMs = (releaseBlock - currentBlock) * blockDurationMs + currentTimestamp;
+
+        unstakingBalance = unstakingBalance + BigInt(unstakeAmount);
+
+        unstakingList.push({
+          chain: chainInfo.slug,
+          status: isClaimable ? UnstakingStatus.CLAIMABLE : UnstakingStatus.UNLOCKING,
+          claimable: unstakeAmount,
+          targetTimestampMs
+        } as UnstakingInfo);
+      });
+    }
+
+    return {
+      status: stakingStatus,
+      balanceToken: this.nativeToken.slug,
+      totalStake: (BigInt(stake) + unstakingBalance).toString(),
+      activeStake: stake,
+      unstakeBalance: unstakingBalance.toString() || '0',
+      isBondedBefore: isBondedBefore,
+      nominations: nominationList,
+      unstakings: unstakingList
+    };
   }
 
   /* Subscribe pool position */
@@ -282,13 +379,46 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
     const extrinsicList = [
       substrateApi.api.tx.collatorStaking.claimRewards(),
       substrateApi.api.tx.collatorStaking.unstakeFrom(selectedTarget),
-      substrateApi.api.tx.collatorStaking.unlock(amount) // todo: can disable amount to unlock all
+      substrateApi.api.tx.collatorStaking.unlock() // ignore amount to unlock all
     ];
 
     return [ExtrinsicType.STAKING_UNBOND, substrateApi.api.tx.utility.batch(extrinsicList)];
   }
 
   /* Leave pool action */
+
+  /* Get pool reward */
+  override async getPoolReward (useAddresses: string[], callBack: (rs: EarningRewardItem) => void): Promise<VoidFunction> {
+    let cancel = false;
+    const substrateApi = this.substrateApi;
+
+    await substrateApi.isReady;
+
+    if (substrateApi.api.call.collatorStakingApi) {
+      await Promise.all(useAddresses.map(async (address) => {
+        const _unclaimedReward = await substrateApi.api.call.collatorStakingApi.totalRewards(address);
+
+        if (cancel) {
+          return;
+        }
+
+        const earningRewardItem = {
+          ...this.baseInfo,
+          address: address,
+          type: this.type,
+          unclaimedReward: _unclaimedReward?.toString() || '0',
+          state: APIItemState.READY
+        };
+
+        callBack(earningRewardItem);
+      }));
+    }
+
+    return () => {
+      cancel = false;
+    };
+  }
+  /* Get pool reward */
 
   /* Other action */
 
@@ -297,7 +427,6 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
   }
 
   async handleYieldWithdraw (address: string, unstakingInfo: UnstakingInfo) {
-    // todo: check UI
     const apiPromise = await this.substrateApi.isReady;
 
     return apiPromise.api.tx.collatorStaking.release();

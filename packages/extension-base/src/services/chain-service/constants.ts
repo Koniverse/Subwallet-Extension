@@ -105,7 +105,7 @@ export const _STAKING_ERA_LENGTH_MAP: Record<string, number> = { // in hours
   avail_mainnet: 24,
   cere: 24,
   analog_timechain: 12,
-  muse_testnet: 1 / 600 // 20 blocks?
+  muse_testnet: 0.04
 };
 
 export const _EXPECTED_BLOCK_TIME: Record<string, number> = { // in seconds
@@ -137,7 +137,8 @@ export const _EXPECTED_BLOCK_TIME: Record<string, number> = { // in seconds
   enjin_relaychain: 6,
   availTuringTest: 20,
   avail_mainnet: 20,
-  dentnet: 3
+  dentnet: 3,
+  muse_testnet: 6
 };
 
 export const _PARACHAIN_INFLATION_DISTRIBUTION: Record<string, Record<string, number>> = {
