@@ -6441,13 +6441,13 @@ __metadata:
 
 "@subwallet/chain-list@file:/Users/truongnguyen/Workspace/SubWallet-ChainList/packages/chain-list/build::locator=root-workspace-0b6124%40workspace%3A.":
   version: 0.2.99-beta.25
-  resolution: "@subwallet/chain-list@file:/Users/truongnguyen/Workspace/SubWallet-ChainList/packages/chain-list/build#/Users/truongnguyen/Workspace/SubWallet-ChainList/packages/chain-list/build::hash=4ff72c&locator=root-workspace-0b6124%40workspace%3A."
+  resolution: "@subwallet/chain-list@file:/Users/truongnguyen/Workspace/SubWallet-ChainList/packages/chain-list/build#/Users/truongnguyen/Workspace/SubWallet-ChainList/packages/chain-list/build::hash=04287a&locator=root-workspace-0b6124%40workspace%3A."
   dependencies:
     "@polkadot/dev": 0.67.167
     "@polkadot/util": ^12.5.1
     eventemitter3: ^5.0.1
     ts-md5: ^1.3.1
-  checksum: 0f1d37c541e029cfa4ad8e6d7a4795b4555a70f58eb49a93340b8ece7c20346f4dbaf701c5590dfcd1041e115ac2b5624e915ae645fbe69fb52f74fe25110642
+  checksum: 4dfd716eb9ae4e906cdabddd58f40e4f8bbecef3d52595b35599812bf185ed37e468c17d1abd83577fd36b42824532ee29c6a8ae94cbe3d6b3c6ccd17823fe8b
   languageName: node
   linkType: hard
 

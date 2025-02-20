@@ -315,6 +315,7 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
     const selectedValidatorInfo = selectedValidators[0];
 
     const tx = apiPromise.api.tx.utility.batchAll([
+      apiPromise.api.tx.collatorStaking.claimRewards(), // todo: improve by checking has reward
       apiPromise.api.tx.collatorStaking.lock(amount),
       apiPromise.api.tx.collatorStaking.stake([{
         candidate: selectedValidatorInfo.address,
@@ -378,7 +379,7 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
   async handleYieldUnstake (amount: string, address: string, selectedTarget?: string): Promise<[ExtrinsicType, TransactionData]> {
     const substrateApi = await this.substrateApi.isReady;
     const extrinsicList = [
-      substrateApi.api.tx.collatorStaking.claimRewards(),
+      substrateApi.api.tx.collatorStaking.claimRewards(), // todo: improve by checking has reward
       substrateApi.api.tx.collatorStaking.unstakeFrom(selectedTarget),
       substrateApi.api.tx.collatorStaking.unlock() // ignore amount to unlock all
     ];
