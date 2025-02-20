@@ -407,27 +407,34 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
           selectedQuote: quote
         };
 
-        const processResult = await generateOptimalProcess(optimalRequest);
-
-        setOptimalSwapPath(processResult);
-
-        dispatchProcessState({
-          payload: {
-            steps: processResult.steps,
-            feeStructure: processResult.totalFee
-          },
-          type: CommonActionType.STEP_CREATE
-        });
+        return await generateOptimalProcess(optimalRequest);
       } catch (error) {
-        console.error('generate Optimal Process failed:', error);
+        console.error('generateOptimalProcess failed:', error);
+
+        return null;
       }
-    }, [fromValue, currentSlippage.slippage, recipientValue, dispatchProcessState]);
+    },
+    [fromValue, currentSlippage.slippage, recipientValue]
+  );
 
   const onSelectQuote = useCallback(
-    (quote: SwapQuote) => {
-      setCurrentQuote(quote);
-      handleGenerateOptimalProcess(quote).catch((e) => console.error(e));
+    async (quote: SwapQuote) => {
+      const processResult = await handleGenerateOptimalProcess(quote);
 
+      if (!processResult) {
+        return;
+      }
+
+      setOptimalSwapPath(processResult);
+      dispatchProcessState({
+        payload: {
+          steps: processResult.steps,
+          feeStructure: processResult.totalFee
+        },
+        type: CommonActionType.STEP_CREATE
+      });
+
+      setCurrentQuote(quote);
       setFeeOptions(quote.feeInfo.feeOptions);
       setCurrentFeeOption(quote.feeInfo.feeOptions?.[0]);
 
@@ -441,7 +448,9 @@ const Component = ({ targetAccountProxy }: ComponentProps) => {
           currentQuote: quote.provider
         };
       });
-    }, [handleGenerateOptimalProcess]);
+    },
+    [handleGenerateOptimalProcess, dispatchProcessState]
+  );
 
   const onSelectFeeOption = useCallback((slug: string) => {
     setCurrentFeeOption(slug);
