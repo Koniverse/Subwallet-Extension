@@ -411,6 +411,12 @@ const ConnectionDetail = styled(Wrapper)<Props>(({ theme: { token } }: Props) =>
 
       '.ant-sw-list-wrapper': {
         flexBasis: 'auto'
+      },
+
+      '.ant-sw-list': {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8
       }
     },
 
@@ -428,6 +434,15 @@ const ConnectionDetail = styled(Wrapper)<Props>(({ theme: { token } }: Props) =>
         flexDirection: 'column',
         display: 'flex'
       }
+    },
+
+    '.__account-proxy-connect-item .__item-middle-part': {
+      textWrap: 'nowrap',
+      textOverflow: 'ellipsis',
+      overflow: 'hidden',
+      fontWeight: 600,
+      fontSize: token.fontSizeHeading6,
+      lineHeight: token.lineHeightHeading6
     },
 
     '&.-modal': {
