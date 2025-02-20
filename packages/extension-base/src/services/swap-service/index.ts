@@ -52,7 +52,11 @@ export class SwapService implements ServiceWithProcessInterface, StoppableServic
 
     if (Array.isArray(quotes)) {
       quotes.forEach((quoteData) => {
-        if (!(quoteData.quote && 'errorClass' in quoteData.quote)) {
+        if (!quoteData.quote || Object.keys(quoteData.quote).length === 0) {
+          return;
+        }
+
+        if (!('errorClass' in quoteData.quote)) {
           availableQuotes.push({ quote: quoteData.quote as SwapQuote | undefined });
         } else {
           availableQuotes.push({
