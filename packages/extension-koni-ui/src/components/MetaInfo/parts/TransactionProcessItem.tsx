@@ -13,13 +13,13 @@ import styled from 'styled-components';
 
 import { InfoItemBase } from './types';
 
-export interface TransactionProcessItemType extends Omit<InfoItemBase, 'value' | 'label'> {
+export interface TransactionProcessItemType extends Omit<InfoItemBase, 'value'> {
   items: ProcessStepItemType[];
   type: ProcessType;
 }
 
 const Component: React.FC<TransactionProcessItemType> = (props: TransactionProcessItemType) => {
-  const { className, items, type } = props;
+  const { className, items, label, type } = props;
   const { transactionStepsModal } = useContext(WalletModalContext);
 
   const { t } = useTranslation();
@@ -31,13 +31,9 @@ const Component: React.FC<TransactionProcessItemType> = (props: TransactionProce
     });
   }, [items, transactionStepsModal, type]);
 
-  const label = useMemo(() => {
-    if (type === ProcessType.SWAP) {
-      return t('Swap route');
-    }
-
+  const defaultLabel = useMemo(() => {
     return t('Process');
-  }, [t, type]);
+  }, [t]);
 
   const stepText = useMemo(() => {
     const stepCount = items.length;
@@ -50,7 +46,7 @@ const Component: React.FC<TransactionProcessItemType> = (props: TransactionProce
     <div className={CN(className, '__row -type-transaction-process}')}>
       <div className={'__col __label-col'}>
         <div className={'__label'}>
-          {label}
+          {label || defaultLabel}
         </div>
       </div>
       <div className={'__col __value-col -to-right'}>
