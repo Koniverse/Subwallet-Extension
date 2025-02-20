@@ -281,7 +281,8 @@ export default class MythosNativeStakingPoolHandler extends BaseParaStakingPoolH
     const maxStakersPerCollator = substrateApi.api.consts.collatorStaking.maxStakers.toPrimitive() as number;
 
     return _allCollators.map((_collator) => {
-      const collatorAddress = _collator[0].toString();
+      const _collatorAddress = _collator[0].toHuman() as unknown as string[];
+      const collatorAddress = _collatorAddress[0];
       const collatorInfo = _collator[1].toPrimitive() as unknown as PalletCollatorStakingCandidateInfo;
 
       const bnTotalStake = BigInt(collatorInfo.stake);
