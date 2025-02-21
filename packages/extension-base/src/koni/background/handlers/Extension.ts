@@ -1639,16 +1639,12 @@ export default class KoniExtension {
       free: tokensHasBalanceInfoMap[nativeTokenInfo.slug]?.free || '0',
       rate: '1'
     } as TokenHasBalanceInfo;
-    const tokensCanPayFee: TokenHasBalanceInfo[] = [nativeTokenBalanceInfo];
+    let tokensCanPayFee: TokenHasBalanceInfo[] = [nativeTokenBalanceInfo];
 
     if (_SUPPORT_TOKEN_PAY_FEE_GROUP.assetHub.includes(chain)) {
-      const appendList = await getAssetHubTokensCanPayFee(substrateApi, chainService, nativeTokenInfo, tokensHasBalanceInfoMap, feeAmount);
-
-      tokensCanPayFee.push(...appendList);
+      tokensCanPayFee = await getAssetHubTokensCanPayFee(substrateApi, chainService, nativeTokenInfo, nativeTokenBalanceInfo, tokensHasBalanceInfoMap, feeAmount);
     } else if (_SUPPORT_TOKEN_PAY_FEE_GROUP.hydration.includes(chain)) {
-      const appendList = await getHydrationTokensCanPayFee(substrateApi, chainService, nativeTokenInfo, tokensHasBalanceInfoMap, feeAmount);
-
-      tokensCanPayFee.push(...appendList);
+      tokensCanPayFee = await getHydrationTokensCanPayFee(substrateApi, chainService, nativeTokenInfo, nativeTokenBalanceInfo, tokensHasBalanceInfoMap, feeAmount);
     }
 
     return tokensCanPayFee;

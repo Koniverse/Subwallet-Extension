@@ -12,8 +12,8 @@ import BigN from 'bignumber.js';
 import { ApiPromise } from '@polkadot/api';
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
 
-export async function getAssetHubTokensCanPayFee (substrateApi: _SubstrateApi, chainService: ChainService, nativeTokenInfo: _ChainAsset, tokensHasBalanceInfoMap: Record<string, BalanceItem>, feeAmount?: string): Promise<TokenHasBalanceInfo[]> {
-  const tokensList: TokenHasBalanceInfo[] = [];
+export async function getAssetHubTokensCanPayFee (substrateApi: _SubstrateApi, chainService: ChainService, nativeTokenInfo: _ChainAsset, nativeBalanceInfo: TokenHasBalanceInfo, tokensHasBalanceInfoMap: Record<string, BalanceItem>, feeAmount?: string): Promise<TokenHasBalanceInfo[]> {
+  const tokensList: TokenHasBalanceInfo[] = [nativeBalanceInfo];
 
   if (!(nativeTokenInfo.metadata && nativeTokenInfo.metadata.multilocation)) {
     return tokensList;
@@ -58,8 +58,8 @@ export async function getAssetHubTokensCanPayFee (substrateApi: _SubstrateApi, c
   return tokensList;
 }
 
-export async function getHydrationTokensCanPayFee (substrateApi: _SubstrateApi, chainService: ChainService, nativeTokenInfo: _ChainAsset, tokensHasBalanceInfoMap: Record<string, BalanceItem>, feeAmount?: string): Promise<TokenHasBalanceInfo[]> {
-  const tokensList: TokenHasBalanceInfo[] = [];
+export async function getHydrationTokensCanPayFee (substrateApi: _SubstrateApi, chainService: ChainService, nativeTokenInfo: _ChainAsset, nativeBalanceInfo: TokenHasBalanceInfo, tokensHasBalanceInfoMap: Record<string, BalanceItem>, feeAmount?: string): Promise<TokenHasBalanceInfo[]> {
+  const tokensList: TokenHasBalanceInfo[] = [nativeBalanceInfo];
   const _acceptedCurrencies = await substrateApi.api.query.multiTransactionPayment.acceptedCurrencies.entries();
 
   const supportedAssetIds = _acceptedCurrencies.map((_assetId) => {
