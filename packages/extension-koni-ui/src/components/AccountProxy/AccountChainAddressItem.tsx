@@ -1,16 +1,16 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { reformatAddress } from '@subwallet/extension-base/utils';
-import { UNIFIED_CHAIN_SS58_PREFIX, UNIFIED_POLKADOT_CHAIN_SLUGS } from '@subwallet/extension-koni-ui/constants';
-import { AccountChainAddress, ThemeProps } from '@subwallet/extension-koni-ui/types';
-import { toShort } from '@subwallet/extension-koni-ui/utils';
-import { isSubstrateAddress } from '@subwallet/keyring/utils/address/validate';
-import { Button, Icon, Logo } from '@subwallet/react-ui';
+import {reformatAddress} from '@subwallet/extension-base/utils';
+import {UNIFIED_CHAIN_SS58_PREFIX} from '@subwallet/extension-koni-ui/constants';
+import {AccountChainAddress, ThemeProps} from '@subwallet/extension-koni-ui/types';
+import {toShort} from '@subwallet/extension-koni-ui/utils';
+import {Button, Icon, Logo} from '@subwallet/react-ui';
 import CN from 'classnames';
-import { Copy, Info, QrCode } from 'phosphor-react';
-import React, { useMemo } from 'react';
+import {Copy, Info, QrCode} from 'phosphor-react';
+import React from 'react';
 import styled from 'styled-components';
+import {useIsPolkadotUnifiedAddress} from "@subwallet/extension-koni-ui/hooks";
 
 type Props = ThemeProps & {
   item: AccountChainAddress;
@@ -24,6 +24,8 @@ function Component (props: Props): React.ReactElement<Props> {
   const { className,
     item,
     onClick, onClickCopyButton, onClickInfoButton, onClickQrButton } = props;
+
+  const isPolkadotUnifiedAddress = useIsPolkadotUnifiedAddress({slug: item.slug, address: item.address})
 
   const _onClickCopyButton: React.MouseEventHandler<HTMLAnchorElement | HTMLButtonElement> = React.useCallback((event) => {
     event.stopPropagation();
@@ -39,10 +41,6 @@ function Component (props: Props): React.ReactElement<Props> {
     event.stopPropagation();
     onClickInfoButton?.();
   }, [onClickInfoButton]);
-
-  const isPolkadotUnifiedAddress = useMemo<boolean>(() => {
-    return UNIFIED_POLKADOT_CHAIN_SLUGS.some((slug) => item.slug === slug) && isSubstrateAddress(item.address);
-  }, [item]);
 
   return (
     <>
