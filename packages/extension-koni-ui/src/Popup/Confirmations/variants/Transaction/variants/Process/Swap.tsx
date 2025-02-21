@@ -113,6 +113,8 @@ const Component: React.FC<Props> = (props: Props) => {
       <MetaInfo
         className={'__swap-confirmation-wrapper'}
         hasBackgroundWrapper={false}
+        labelColorScheme={'gray'}
+        labelFontWeight={'regular'}
       >
         <MetaInfo.Account
           address={recipientAddress}

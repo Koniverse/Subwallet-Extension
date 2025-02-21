@@ -27,7 +27,11 @@ const Component: FC<Props> = (props: Props) => {
 
   const modalTitle = useMemo(() => {
     if (type === ProcessType.SWAP) {
-      return t('Swap route');
+      return t('Swap process');
+    }
+
+    if (type === ProcessType.EARNING) {
+      return t('Stake process');
     }
 
     return t('Process');

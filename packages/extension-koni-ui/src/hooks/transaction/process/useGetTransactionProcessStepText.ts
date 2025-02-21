@@ -133,26 +133,20 @@ const useGetTransactionProcessStepText = () => {
           const { brief } = combineInfo as SummaryEarningProcessData;
 
           const asset = assetRegistry[brief.token];
-          const earnMethod = (() => {
-            if (brief.method === YieldPoolType.NOMINATION_POOL) {
-              return t('nomination pool');
-            }
 
-            if (brief.method === YieldPoolType.NATIVE_STAKING) {
-              return t('direct nomination');
-            }
-
-            if (brief.method === YieldPoolType.PARACHAIN_STAKING) {
-              return t('parachain staking');
-            }
-
-            return t('liquid staking');
-          })();
+          const earnMethodMap: Record<string, string> = {
+            [`${YieldPoolType.NOMINATION_POOL}`]: t('Nomination pool'),
+            [`${YieldPoolType.NATIVE_STAKING}`]: t('Direct nomination'),
+            [`${YieldPoolType.LIQUID_STAKING}`]: t('Liquid staking'),
+            [`${YieldPoolType.LENDING}`]: t('Lending'),
+            [`${YieldPoolType.PARACHAIN_STAKING}`]: t('Parachain staking'),
+            [`${YieldPoolType.SINGLE_FARMING}`]: t('Single farming')
+          };
 
           return {
             tokenValue: toDisplayNumber(brief.amount, _getAssetDecimals(asset)),
             tokenSymbol: _getAssetSymbol(asset),
-            earnMethod
+            earnMethod: earnMethodMap[brief.method]
           };
         } catch (e) {
           console.log('analysisMetadata error', e);
