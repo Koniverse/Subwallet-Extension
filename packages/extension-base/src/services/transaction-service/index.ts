@@ -313,6 +313,13 @@ export default class TransactionService {
           resolve();
         }
       });
+
+      emitter.on('timeout', (data: TransactionEventResponse) => {
+        if (transaction.errorOnTimeOut && data.errors.length > 0) {
+          validatedTransaction.errors.push(...data.errors);
+          resolve();
+        }
+      });
     });
 
     // @ts-ignore
@@ -1528,6 +1535,20 @@ export default class TransactionService {
       }
 
       this.updateAliveProcess();
+    } else {
+      this.state.dbService.getProcessTransactionById(processId)
+        .then((process) => {
+          if (process) {
+            const step = process.steps.find((item) => item.id === stepId);
+
+            if (step && step.status === StepStatus.TIMEOUT && [StepStatus.COMPLETE, StepStatus.FAILED].includes(data.status)) {
+              Object.assign(step, data);
+
+              this.state.dbService.upsertProcessTransaction(process).catch(console.error);
+            }
+          }
+        })
+        .catch(console.error);
     }
   }
 

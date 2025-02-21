@@ -387,13 +387,25 @@ export default class DatabaseService {
           const currentStep = process.steps.find((tx) => tx.transactionId === txId);
 
           if (currentStep) {
+            const differentHash = txId !== extrinsicHash && currentStep.extrinsicHash !== extrinsicHash;
+
             if (currentStep.status === StepStatus.PROCESSING || currentStep.status === StepStatus.SUBMITTING) {
               switch (updateData.status) {
                 case ExtrinsicStatus.SUCCESS:
                   currentStep.status = StepStatus.COMPLETE;
+
+                  if (differentHash) {
+                    currentStep.extrinsicHash = extrinsicHash;
+                  }
+
                   break;
                 case ExtrinsicStatus.FAIL:
                   currentStep.status = StepStatus.FAILED;
+
+                  if (differentHash) {
+                    currentStep.extrinsicHash = extrinsicHash;
+                  }
+
                   break;
                 case ExtrinsicStatus.UNKNOWN:
                   currentStep.status = StepStatus.TIMEOUT;

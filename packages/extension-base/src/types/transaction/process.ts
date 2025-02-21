@@ -11,6 +11,7 @@ import { RequestYieldStepSubmit } from '../yield';
 export interface BaseProcessRequestSign {
   isPassConfirmation?: boolean;
   onSend?: (rs: TransactionEventResponse) => void;
+  errorOnTimeOut?: boolean;
   processId?: string;
 }
 

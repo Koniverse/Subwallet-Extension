@@ -28,6 +28,7 @@ export interface SWTransaction extends ValidateTransactionResponse, Partial<Pick
   additionalValidator?: (inputTransaction: SWTransactionResponse) => Promise<void>;
   eventsHandler?: (eventEmitter: TransactionEmitter) => void;
   isPassConfirmation?: boolean;
+  errorOnTimeOut?: boolean;
   signAfterCreate?: (id: string) => void;
   step?: BriefProcessStep;
 }
@@ -39,7 +40,7 @@ export interface SWTransactionResult extends Omit<SWTransaction, 'transaction' |
 type SwInputBase = Pick<SWTransaction, 'address' | 'url' | 'data' | 'extrinsicType' | 'chain' | 'chainType' | 'ignoreWarnings' | 'transferNativeAmount'>
 & Partial<Pick<SWTransaction, 'additionalValidator' | 'eventsHandler'>>;
 
-export interface SWTransactionInput extends SwInputBase, Partial<Pick<SWTransaction, 'estimateFee' | 'signAfterCreate' | 'isPassConfirmation' | 'step'>>, TransactionFee {
+export interface SWTransactionInput extends SwInputBase, Partial<Pick<SWTransaction, 'estimateFee' | 'signAfterCreate' | 'isPassConfirmation' | 'step' | 'errorOnTimeOut'>>, TransactionFee {
   id?: string;
   transaction?: SWTransaction['transaction'] | null;
   warnings?: SWTransaction['warnings'];

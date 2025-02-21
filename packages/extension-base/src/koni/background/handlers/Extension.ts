@@ -3450,7 +3450,7 @@ export default class KoniExtension {
   }
 
   private async handleYieldStep (inputData: RequestYieldStepSubmit): Promise<SWTransactionResponse> {
-    const { data, isPassConfirmation, onSend, path, processId } = inputData;
+    const { data, errorOnTimeOut, isPassConfirmation, onSend, path, processId } = inputData;
     const { address } = data;
 
     let step: BriefProcessStep | undefined;
@@ -3575,6 +3575,7 @@ export default class KoniExtension {
       resolveOnDone: !isLastStep,
       transferNativeAmount,
       skipFeeValidation: isMintingStep && isPoolSupportAlternativeFee,
+      errorOnTimeOut,
       ...this.createPassConfirmationParams(isPassConfirmation),
       eventsHandler,
       step
@@ -4001,7 +4002,7 @@ export default class KoniExtension {
   }
 
   private async handleSwapStep (inputData: SwapSubmitParams): Promise<SWTransactionResponse> {
-    const { address, isPassConfirmation, onSend, process, processId, quote, recipient } = inputData;
+    const { address, errorOnTimeOut, isPassConfirmation, onSend, process, processId, quote, recipient } = inputData;
     let step: BriefProcessStep | undefined;
 
     if (processId) {
@@ -4144,6 +4145,7 @@ export default class KoniExtension {
       resolveOnDone: !isLastStep,
       transferNativeAmount,
       ...this.createPassConfirmationParams(isPassConfirmation),
+      errorOnTimeOut,
       eventsHandler,
       step
       // skipFeeValidation: chosenFeeToken && allowSkipValidation
@@ -4362,6 +4364,7 @@ export default class KoniExtension {
               currentStep: step,
               isPassConfirmation,
               onSend,
+              errorOnTimeOut: true,
               processId
             });
           };
@@ -4407,6 +4410,7 @@ export default class KoniExtension {
                 quote: latestSwapQuote.optimalQuote || data.quote,
                 currentStep: step,
                 isPassConfirmation,
+                errorOnTimeOut: true,
                 processId
               });
             }
@@ -4416,6 +4420,7 @@ export default class KoniExtension {
               currentStep: step,
               isPassConfirmation,
               onSend,
+              errorOnTimeOut: true,
               processId
             });
           };
@@ -4462,7 +4467,7 @@ export default class KoniExtension {
               });
             }
 
-            return loopSubmit(submitFunc, step + 1);
+            return loopSubmit(submitFunc, step + 1, callback);
           }
         };
 
