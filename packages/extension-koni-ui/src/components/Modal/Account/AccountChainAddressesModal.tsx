@@ -30,7 +30,7 @@ const Component: React.FC<Props> = ({ accountProxy, className, onBack, onCancel 
   const notify = useNotification();
   const onHandleTonAccountWarning = useHandleTonAccountWarning();
   const onHandleLedgerGenericAccountWarning = useHandleLedgerGenericAccountWarning();
-  const { addressQrModal } = useContext(WalletModalContext);
+  const { addressQrModal, selectAddressFormatModal } = useContext(WalletModalContext);
 
   const onShowQr = useCallback((item: AccountChainAddress) => {
     return () => {
@@ -54,6 +54,25 @@ const Component: React.FC<Props> = ({ accountProxy, className, onBack, onCancel 
       });
     };
   }, [accountProxy, addressQrModal, onCancel, onHandleLedgerGenericAccountWarning, onHandleTonAccountWarning]);
+
+  const onClickInfoButton = useCallback((item: AccountChainAddress) => {
+    return () => {
+      const processFunction = () => {
+        selectAddressFormatModal.open({
+          name: item.name,
+          address: item.address,
+          chainSlug: item.slug,
+          onBack: selectAddressFormatModal.close,
+          onCancel: () => {
+            selectAddressFormatModal.close();
+            onCancel();
+          }
+        });
+      };
+
+      processFunction();
+    };
+  }, [onCancel, selectAddressFormatModal]);
 
   const onCopyAddress = useCallback((item: AccountChainAddress) => {
     return () => {
@@ -82,11 +101,12 @@ const Component: React.FC<Props> = ({ accountProxy, className, onBack, onCancel 
           key={item.slug}
           onClick={onShowQr(item)}
           onClickCopyButton={onCopyAddress(item)}
+          onClickInfoButton={onClickInfoButton(item)}
           onClickQrButton={onShowQr(item)}
         />
       );
     },
-    [onCopyAddress, onShowQr]
+    [onClickInfoButton, onCopyAddress, onShowQr]
   );
 
   const emptyList = useCallback(() => {

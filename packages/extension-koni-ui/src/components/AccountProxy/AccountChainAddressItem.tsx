@@ -1,25 +1,31 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { AccountChainAddress, ThemeProps } from '@subwallet/extension-koni-ui/types';
-import { toShort } from '@subwallet/extension-koni-ui/utils';
-import { Button, Icon, Logo } from '@subwallet/react-ui';
+import {reformatAddress} from '@subwallet/extension-base/utils';
+import {UNIFIED_CHAIN_SS58_PREFIX} from '@subwallet/extension-koni-ui/constants';
+import {AccountChainAddress, ThemeProps} from '@subwallet/extension-koni-ui/types';
+import {toShort} from '@subwallet/extension-koni-ui/utils';
+import {Button, Icon, Logo} from '@subwallet/react-ui';
 import CN from 'classnames';
-import { Copy, QrCode } from 'phosphor-react';
+import {Copy, Info, QrCode} from 'phosphor-react';
 import React from 'react';
 import styled from 'styled-components';
+import {useIsPolkadotUnifiedAddress} from "@subwallet/extension-koni-ui/hooks";
 
 type Props = ThemeProps & {
   item: AccountChainAddress;
   onClick?: VoidFunction;
   onClickCopyButton?: VoidFunction;
   onClickQrButton?: VoidFunction;
+  onClickInfoButton?: VoidFunction
 }
 
 function Component (props: Props): React.ReactElement<Props> {
   const { className,
     item,
-    onClick, onClickCopyButton, onClickQrButton } = props;
+    onClick, onClickCopyButton, onClickInfoButton, onClickQrButton } = props;
+
+  const isPolkadotUnifiedAddress = useIsPolkadotUnifiedAddress({slug: item.slug, address: item.address})
 
   const _onClickCopyButton: React.MouseEventHandler<HTMLAnchorElement | HTMLButtonElement> = React.useCallback((event) => {
     event.stopPropagation();
@@ -30,6 +36,11 @@ function Component (props: Props): React.ReactElement<Props> {
     event.stopPropagation();
     onClickQrButton?.();
   }, [onClickQrButton]);
+
+  const _onClickInfoButton: React.MouseEventHandler<HTMLAnchorElement | HTMLButtonElement> = React.useCallback((event) => {
+    event.stopPropagation();
+    onClickInfoButton?.();
+  }, [onClickInfoButton]);
 
   return (
     <>
@@ -50,22 +61,39 @@ function Component (props: Props): React.ReactElement<Props> {
             {item.name}
           </div>
           <div className='__item-address'>
-            {toShort(item.address, 4, 5)}
+            {toShort(isPolkadotUnifiedAddress ? reformatAddress(item.address, UNIFIED_CHAIN_SS58_PREFIX) : item.address, 4, 5)}
           </div>
         </div>
 
         <div className='__item-right-part'>
-          <Button
-            icon={
-              <Icon
-                phosphorIcon={QrCode}
-                size='sm'
+          {!isPolkadotUnifiedAddress
+            ? (<Button
+              icon={
+                <Icon
+                  phosphorIcon={QrCode}
+                  size='sm'
+                />
+              }
+              onClick={_onClickQrButton}
+              size='xs'
+              type='ghost'
+            />)
+            : (
+              <Button
+                icon={
+                  <Icon
+                    phosphorIcon={Info}
+                    size='sm'
+                    weight={'fill'}
+                  />
+                }
+                onClick={_onClickInfoButton}
+                size='xs'
+                tooltip={'This network has two address formats'}
+                tooltipPlacement={'topLeft'}
+                type='ghost'
               />
-            }
-            onClick={_onClickQrButton}
-            size='xs'
-            type='ghost'
-          />
+            )}
           <Button
             icon={
               <Icon

@@ -14,6 +14,7 @@ export { default as useUnlockChecker } from './useUnlockChecker';
 export { default as useAlert } from './useAlert';
 export { default as useSetSessionLatest } from './useSetSessionLatest';
 export { default as useDebouncedValue } from './useDebouncedValue';
+export { default as useIsPolkadotUnifiedAddress } from './useIsPolkadotUnifiedAddress';
 
 export * from './useSelector';
 export * from './useLazyList';
