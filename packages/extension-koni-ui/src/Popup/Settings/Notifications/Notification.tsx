@@ -77,7 +77,7 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
 
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { goBack, goHome } = useDefaultNavigate();
+  const { goHome } = useDefaultNavigate();
   const { token } = useTheme() as Theme;
   const { alertProps, closeAlert, openAlert, updateAlertProps } = useAlert(alertModalId);
   const chainsByAccountType = useGetChainSlugsByAccount();
@@ -208,13 +208,10 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
     };
   }, [activeModal]);
 
-  // todo: may have more conditions
-  const forceGoHome = !!paramTransactionProcessId;
-
   const onClickBack = useCallback(() => {
     setCurrentSearchText('');
-    forceGoHome ? goHome() : goBack();
-  }, [forceGoHome, goBack, goHome]);
+    goHome();
+  }, [goHome]);
 
   const showActiveChainModal = useCallback((chainSlug: string, action: NotificationActionType.WITHDRAW | NotificationActionType.CLAIM) => {
     const onOk = () => {
