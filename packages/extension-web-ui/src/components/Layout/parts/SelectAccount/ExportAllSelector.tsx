@@ -9,7 +9,7 @@ import AccountExportPasswordModal from '@subwallet/extension-web-ui/components/M
 import { EXPORT_ACCOUNTS_PASSWORD_MODAL, SELECT_ACCOUNT_MODAL } from '@subwallet/extension-web-ui/constants';
 import { useFilterModal, useGoBackSelectAccount, useSelectAccount } from '@subwallet/extension-web-ui/hooks';
 import { AccountSignMode, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { isAccountAll, searchAccountProxyFunction, shouldShowAllAccount } from '@subwallet/extension-web-ui/utils';
+import { isAccountAll, searchAccountProxyFunction, shouldShowAccountAll } from '@subwallet/extension-web-ui/utils';
 import { Button, ButtonProps, Icon, InputRef, ModalContext, SwList, Tooltip } from '@subwallet/react-ui';
 import { SwListSectionRef } from '@subwallet/react-ui/es/sw-list';
 import CN from 'classnames';
@@ -54,7 +54,7 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
   const { className = '',
     id = defaultModalId,
     isSingleSelect = false,
-    items,
+    items: originItems,
     onChange } = props;
   const { t } = useTranslation();
   const { activeModal, checkActive } = useContext(ModalContext);
@@ -63,6 +63,16 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
   const isActive = checkActive(modalId);
 
   const sectionRef = useRef<SwListSectionRef>(null);
+
+  const items = useMemo(() => {
+    const result = originItems.filter((i) => i.accountType !== AccountProxyType.INJECTED);
+
+    if (result.length === 1 && isAccountAll(result[0].id)) {
+      return [];
+    }
+
+    return result;
+  }, [originItems]);
 
   const getAllIdProxy = useMemo(() => {
     const idProxies: string[] = [];
@@ -75,8 +85,8 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
   }, [items]);
   const { changeAccounts, onChangeSelectedAccounts } = useSelectAccount(getAllIdProxy, id, onChange, isSingleSelect);
 
-  const showAllAccount = useMemo(() => {
-    return shouldShowAllAccount(items);
+  const showAccountAll = useMemo(() => {
+    return shouldShowAccountAll(items);
   }, [items]);
 
   const { filterSelectionMap, onApplyFilter, onChangeFilterOption, onCloseFilterModal, onResetFilter, selectedFilters } = useFilterModal(FILTER_MODAL_ID);
@@ -130,7 +140,7 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
     const currentAccountIsAll = isAccountAll(item.id);
 
     if (currentAccountIsAll) {
-      if (showAllAccount) {
+      if (showAccountAll) {
         return (
           <AccountProxySelectorAllItem
             className='all-account-selection'
@@ -155,7 +165,7 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
         showUnSelectedIcon
       />
     );
-  }, [changeAccounts, className, onAccountSelect, onClickItem]);
+  }, [changeAccounts, className, onAccountSelect, onClickItem, showAccountAll]);
 
   const onClickFilterButton = useCallback(
     (e?: SyntheticEvent) => {
@@ -192,7 +202,7 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
     }
   }, [changeAccounts]);
 
-  const isDiableExport = useMemo(() => {
+  const isDisableExport = useMemo(() => {
     if (changeAccounts.length > 0) {
       return false;
     }
@@ -237,7 +247,7 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
         footer={(
           <Button
             block
-            disabled={isDiableExport}
+            disabled={isDisableExport}
             icon={(
               <Icon
                 phosphorIcon={Export}
@@ -299,7 +309,6 @@ const ExportAllSelector = styled(forwardRef(Component))<Props>(({ theme: { token
 
     '.ant-sw-modal-footer': {
       margin: 0,
-      marginTop: token.marginXS,
       borderTop: 0,
       paddingLeft: 0,
       paddingRight: 0
@@ -311,7 +320,8 @@ const ExportAllSelector = styled(forwardRef(Component))<Props>(({ theme: { token
     },
     '.ant-sw-list': {
       paddingRight: 0,
-      paddingLeft: 0
+      paddingLeft: 0,
+      paddingBottom: 0
     },
 
     '.all-account-selection': {

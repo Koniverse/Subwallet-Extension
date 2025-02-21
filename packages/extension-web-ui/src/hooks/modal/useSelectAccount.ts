@@ -17,6 +17,10 @@ export function useSelectAccount (getAllAddress: string[], modalId: string, onCh
 
   const onChangeSelectedAccounts = useCallback((changeVal: string) => {
     setChangeAccounts((changeAccounts) => {
+      if (!changeVal) {
+        return [];
+      }
+
       let result: string[];
       const isAll = isAccountAll(changeVal);
 
