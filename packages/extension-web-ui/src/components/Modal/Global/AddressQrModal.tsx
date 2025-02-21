@@ -11,7 +11,7 @@ import { useFetchChainInfo, useGetAccountByAddress } from '@subwallet/extension-
 import useNotification from '@subwallet/extension-web-ui/hooks/common/useNotification';
 import useTranslation from '@subwallet/extension-web-ui/hooks/common/useTranslation';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
-import { toShort } from '@subwallet/extension-web-ui/utils';
+import { openInNewTab, toShort } from '@subwallet/extension-web-ui/utils';
 import { Button, Icon, Logo, ModalContext, SwQRCode } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { ArrowSquareOut, CaretLeft, CopySimple, Gear } from 'phosphor-react';
@@ -48,8 +48,7 @@ const Component: React.FC<Props> = ({ address, chainSlug, className, onBack, onC
   const handleClickViewOnExplorer = useCallback(() => {
     try {
       if (scanExplorerAddressUrl) {
-        // eslint-disable-next-line no-void
-        void chrome.tabs.create({ url: scanExplorerAddressUrl, active: true }).then(() => console.log('redirecting'));
+        openInNewTab(scanExplorerAddressUrl)();
       }
     } catch (e) {
       console.log('error redirecting to a new tab');
