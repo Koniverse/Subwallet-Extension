@@ -4471,7 +4471,7 @@ export default class KoniExtension {
               });
             }
 
-            return loopSubmit(submitFunc, step + 1, callback);
+            return loopSubmit(submitFunc, step + 1);
           }
         };
 

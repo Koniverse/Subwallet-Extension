@@ -1544,6 +1544,12 @@ export default class TransactionService {
             if (step && step.status === StepStatus.TIMEOUT && [StepStatus.COMPLETE, StepStatus.FAILED].includes(data.status)) {
               Object.assign(step, data);
 
+              const isLastStep = process.steps[process.steps.length - 1].id = stepId;
+
+              if (isLastStep) {
+                process.status = data.status;
+              }
+
               this.state.dbService.upsertProcessTransaction(process).catch(console.error);
             }
           }
