@@ -6439,15 +6439,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@subwallet/chain-list@file:/Users/truongnguyen/Workspace/SubWallet-ChainList/packages/chain-list/build::locator=root-workspace-0b6124%40workspace%3A.":
-  version: 0.2.99-beta.25
-  resolution: "@subwallet/chain-list@file:/Users/truongnguyen/Workspace/SubWallet-ChainList/packages/chain-list/build#/Users/truongnguyen/Workspace/SubWallet-ChainList/packages/chain-list/build::hash=04287a&locator=root-workspace-0b6124%40workspace%3A."
+"@subwallet/chain-list@npm:0.2.99-beta.29":
+  version: 0.2.99-beta.29
+  resolution: "@subwallet/chain-list@npm:0.2.99-beta.29"
   dependencies:
     "@polkadot/dev": 0.67.167
     "@polkadot/util": ^12.5.1
     eventemitter3: ^5.0.1
     ts-md5: ^1.3.1
-  checksum: 4dfd716eb9ae4e906cdabddd58f40e4f8bbecef3d52595b35599812bf185ed37e468c17d1abd83577fd36b42824532ee29c6a8ae94cbe3d6b3c6ccd17823fe8b
+  checksum: eb46e1a6e48fc53be95754df35763d01e04029a24f1690b2ef75f8de7e6cfff1e599e41b19b0654306c4bda8c454bca0056e14af50dffd71fea78bbd6db932a2
   languageName: node
   linkType: hard
 
@@ -6490,7 +6490,7 @@ __metadata:
     "@reduxjs/toolkit": ^1.9.1
     "@sora-substrate/type-definitions": ^1.17.7
     "@substrate/connect": ^0.8.9
-    "@subwallet/chain-list": 0.2.99-beta.14
+    "@subwallet/chain-list": 0.2.99-beta.29
     "@subwallet/extension-base": ^1.3.15-0
     "@subwallet/extension-chains": ^1.3.15-0
     "@subwallet/extension-dapp": ^1.3.15-0
@@ -6629,7 +6629,7 @@ __metadata:
     "@polkadot/util-crypto": ^12.6.2
     "@ramonak/react-progress-bar": ^5.0.3
     "@reduxjs/toolkit": ^1.9.1
-    "@subwallet/chain-list": 0.2.99-beta.14
+    "@subwallet/chain-list": 0.2.99-beta.29
     "@subwallet/extension-base": ^1.3.15-0
     "@subwallet/extension-chains": ^1.3.15-0
     "@subwallet/extension-dapp": ^1.3.15-0
@@ -6769,7 +6769,7 @@ __metadata:
     "@polkadot/util-crypto": ^12.6.2
     "@ramonak/react-progress-bar": ^5.0.3
     "@reduxjs/toolkit": ^1.9.1
-    "@subwallet/chain-list": 0.2.99-beta.14
+    "@subwallet/chain-list": 0.2.99-beta.29
     "@subwallet/extension-base": ^1.3.15-0
     "@subwallet/extension-chains": ^1.3.15-0
     "@subwallet/extension-dapp": ^1.3.15-0
