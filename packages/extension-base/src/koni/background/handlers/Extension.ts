@@ -10,7 +10,7 @@ import { createSubscription } from '@subwallet/extension-base/background/handler
 import { AccountExternalError, AddressBookInfo, AmountData, AmountDataWithId, AssetSetting, AssetSettingUpdateReq, BondingOptionParams, BrowserConfirmationType, CampaignBanner, CampaignData, CampaignDataType, ChainType, CronReloadRequest, CrowdloanJson, ExternalRequestPromiseStatus, ExtrinsicType, KeyringState, MantaPayEnableMessage, MantaPayEnableParams, MantaPayEnableResponse, MantaPaySyncState, MetadataItem, NftCollection, NftJson, NftTransactionRequest, NftTransactionResponse, PriceJson, RequestAccountCreateExternalV2, RequestAccountCreateHardwareMultiple, RequestAccountCreateHardwareV2, RequestAccountCreateWithSecretKey, RequestAccountExportPrivateKey, RequestAddInjectedAccounts, RequestApproveConnectWalletSession, RequestApproveWalletConnectNotSupport, RequestAuthorization, RequestAuthorizationBlock, RequestAuthorizationPerAccount, RequestAuthorizationPerSite, RequestAuthorizeApproveV2, RequestBondingSubmit, RequestCameraSettings, RequestCampaignBannerComplete, RequestChangeEnableChainPatrol, RequestChangeLanguage, RequestChangeMasterPassword, RequestChangePriceCurrency, RequestChangeShowBalance, RequestChangeShowZeroBalance, RequestChangeTimeAutoLock, RequestConfirmationComplete, RequestConfirmationCompleteTon, RequestConnectWalletConnect, RequestCrowdloanContributions, RequestDeleteContactAccount, RequestDisconnectWalletConnectSession, RequestEditContactAccount, RequestFindRawMetadata, RequestForgetSite, RequestFreeBalance, RequestGetTransaction, RequestKeyringExportMnemonic, RequestMigratePassword, RequestParseEvmContractInput, RequestParseTransactionSubstrate, RequestPassPhishingPage, RequestQrParseRLP, RequestQrSignEvm, RequestQrSignSubstrate, RequestRejectConnectWalletSession, RequestRejectExternalRequest, RequestRejectWalletConnectNotSupport, RequestRemoveInjectedAccounts, RequestResetWallet, RequestResolveExternalRequest, RequestSaveAppConfig, RequestSaveBrowserConfig, RequestSaveOSConfig, RequestSaveRecentAccount, RequestSettingsType, RequestSigningApprovePasswordV2, RequestStakePoolingBonding, RequestStakePoolingUnbonding, RequestSubscribeHistory, RequestSubstrateNftSubmitTransaction, RequestTuringCancelStakeCompound, RequestTuringStakeCompound, RequestUnbondingSubmit, RequestUnlockKeyring, RequestUnlockType, ResolveAddressToDomainRequest, ResolveDomainRequest, ResponseAccountCreateWithSecretKey, ResponseAccountExportPrivateKey, ResponseChangeMasterPassword, ResponseFindRawMetadata, ResponseKeyringExportMnemonic, ResponseMigratePassword, ResponseNftImport, ResponseParseEvmContractInput, ResponseParseTransactionSubstrate, ResponseQrParseRLP, ResponseQrSignEvm, ResponseQrSignSubstrate, ResponseRejectExternalRequest, ResponseResetWallet, ResponseResolveExternalRequest, ResponseSubscribeHistory, ResponseUnlockKeyring, ShowCampaignPopupRequest, StakingJson, StakingRewardJson, StakingType, SufficientMetadata, ThemeNames, TokenPriorityDetails, TransactionHistoryItem, TransactionResponse, ValidateNetworkRequest, ValidateNetworkResponse, ValidatorInfo } from '@subwallet/extension-base/background/KoniTypes';
 import { AccountAuthType, AuthorizeRequest, MessageTypes, MetadataRequest, RequestAccountExport, RequestAuthorizeCancel, RequestAuthorizeReject, RequestCurrentAccountAddress, RequestMetadataApprove, RequestMetadataReject, RequestSigningApproveSignature, RequestSigningCancel, RequestTypes, ResponseAccountExport, ResponseAuthorizeList, ResponseType, SigningRequest, WindowOpenParams } from '@subwallet/extension-base/background/types';
 import { TransactionWarning } from '@subwallet/extension-base/background/warnings/TransactionWarning';
-import { ALL_ACCOUNT_KEY, ASSET_HUB_CHAIN_SLUGS, LATEST_SESSION } from '@subwallet/extension-base/constants';
+import { _SUPPORT_TOKEN_PAY_FEE_GROUP, ALL_ACCOUNT_KEY, LATEST_SESSION } from '@subwallet/extension-base/constants';
 import { additionalValidateTransferForRecipient, additionalValidateXcmTransfer, validateTransferRequest, validateXcmTransferRequest } from '@subwallet/extension-base/core/logic-validation/transfer';
 import { FrameSystemAccountInfo } from '@subwallet/extension-base/core/substrate/types';
 import { _isSnowBridgeXcm } from '@subwallet/extension-base/core/substrate/xcm-parser';
@@ -40,12 +40,12 @@ import { _ChainApiStatus, _ChainConnectionStatus, _ChainState, _NetworkUpsertPar
 import { _getAssetDecimals, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getContractAddressOfToken, _getEvmChainId, _getTokenOnChainAssetId, _getXcmAssetMultilocation, _isAssetSmartContractNft, _isBridgedToken, _isChainEvmCompatible, _isChainSubstrateCompatible, _isCustomAsset, _isLocalToken, _isMantaZkAsset, _isNativeToken, _isPureEvmChain, _isTokenEvmSmartContract, _isTokenTransferredByEvm, _isTokenTransferredByTon } from '@subwallet/extension-base/services/chain-service/utils';
 import { TokenHasBalanceInfo } from '@subwallet/extension-base/services/fee-service/interfaces';
 import { calculateToAmountByReservePool } from '@subwallet/extension-base/services/fee-service/utils';
+import { getAssetHubTokensCanPayFee, getHydrationTokensCanPayFee } from '@subwallet/extension-base/services/fee-service/utils/tokenPayFee';
 import { ClaimPolygonBridgeNotificationMetadata, NotificationSetup } from '@subwallet/extension-base/services/inapp-notification-service/interfaces';
 import { AppBannerData, AppConfirmationData, AppPopupData } from '@subwallet/extension-base/services/mkt-campaign-service/types';
 import { EXTENSION_REQUEST_URL } from '@subwallet/extension-base/services/request-service/constants';
 import { AuthUrls } from '@subwallet/extension-base/services/request-service/types';
 import { DEFAULT_AUTO_LOCK_TIME } from '@subwallet/extension-base/services/setting-service/constants';
-import { checkLiquidityForPool, estimateTokensForPool, getReserveForPool } from '@subwallet/extension-base/services/swap-service/handler/asset-hub/utils';
 import { SWTransaction, SWTransactionResponse, SWTransactionResult, TransactionEmitter, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
 import { isProposalExpired, isSupportWalletConnectChain, isSupportWalletConnectNamespace } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
 import { ResultApproveWalletConnectSession, WalletConnectNotSupportRequest, WalletConnectSessionRequest } from '@subwallet/extension-base/services/wallet-connect-service/types';
@@ -1323,6 +1323,9 @@ export default class KoniExtension {
     const nativeTokenSlug: string = nativeTokenInfo.slug;
     const isTransferNativeToken = nativeTokenSlug === tokenSlug;
     const isTransferLocalTokenAndPayThatTokenAsFee = !isTransferNativeToken && nonNativeTokenPayFeeSlug === tokenSlug;
+    const isCustomTokenPayFeeAssetHub = Boolean(nonNativeTokenPayFeeSlug && _SUPPORT_TOKEN_PAY_FEE_GROUP.assetHub.includes(chain));
+    const isCustomTokenPayFeeHydration = Boolean(nonNativeTokenPayFeeSlug && _SUPPORT_TOKEN_PAY_FEE_GROUP.hydration.includes(chain));
+
     const extrinsicType = isTransferNativeToken ? ExtrinsicType.TRANSFER_BALANCE : ExtrinsicType.TRANSFER_TOKEN;
     let chainType = ChainType.SUBSTRATE;
 
@@ -1391,6 +1394,7 @@ export default class KoniExtension {
         });
       } else {
         const substrateApi = this.#koniState.getSubstrateApi(chain);
+        const hydrationFeeAssetId = isCustomTokenPayFeeHydration ? this.#koniState.chainService.getAssetBySlug(nonNativeTokenPayFeeSlug).metadata?.assetId : undefined;
 
         [transaction, transferAmount.value] = await createTransferExtrinsic({
           transferAll: !!transferAll,
@@ -1399,7 +1403,8 @@ export default class KoniExtension {
           networkKey: chain,
           tokenInfo: transferTokenInfo,
           to: to,
-          substrateApi
+          substrateApi,
+          hydrationFeeAssetId
         });
       }
     } catch (e) {
@@ -1423,7 +1428,7 @@ export default class KoniExtension {
       }
 
       // Check enough free local to pay fee local
-      if (nonNativeTokenPayFeeSlug) {
+      if (isCustomTokenPayFeeAssetHub) {
         const nonNativeFee = BigInt(inputTransaction.estimateFee?.value || '0'); // todo: estimateFee should be must-have, need to refactor interface
         const nonNativeTokenPayFeeInfo = await this.#koniState.balanceService.getTokensHasBalance(reformatAddress(from), chain, nonNativeTokenPayFeeSlug);
         const nonNativeTokenPayFeeBalance = BigInt(nonNativeTokenPayFeeInfo[nonNativeTokenPayFeeSlug].free);
@@ -1627,53 +1632,20 @@ export default class KoniExtension {
     const substrateApi = this.#koniState.getSubstrateApi(chain);
     const address = reformatAddress(_address);
 
-    // ensure nativeTokenInfo and localTokenInfo have multi-location metadata beforehand to improve performance.
     const tokensHasBalanceInfoMap = await this.#koniState.balanceService.getTokensHasBalance(address, chain);
-    const tokensHasBalanceSlug = Object.keys(tokensHasBalanceInfoMap);
-    const tokenInfos = tokensHasBalanceSlug.map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => (
-      token.originChain === chain &&
-      token.assetType !== _AssetType.NATIVE &&
-      token.metadata &&
-      token.metadata.multilocation
-    ));
     const nativeTokenInfo = chainService.getNativeTokenInfo(chain);
     const nativeTokenBalanceInfo = {
       slug: nativeTokenInfo.slug,
       free: tokensHasBalanceInfoMap[nativeTokenInfo.slug]?.free || '0',
       rate: '1'
     } as TokenHasBalanceInfo;
-    const tokensCanPayFee: TokenHasBalanceInfo[] = [nativeTokenBalanceInfo];
+    let tokensCanPayFee: TokenHasBalanceInfo[] = [nativeTokenBalanceInfo];
 
-    if (!ASSET_HUB_CHAIN_SLUGS.includes(chain) || !nativeTokenInfo.metadata || !nativeTokenInfo.metadata.multilocation) {
-      return tokensCanPayFee;
+    if (_SUPPORT_TOKEN_PAY_FEE_GROUP.assetHub.includes(chain)) {
+      tokensCanPayFee = await getAssetHubTokensCanPayFee(substrateApi, chainService, nativeTokenInfo, nativeTokenBalanceInfo, tokensHasBalanceInfoMap, feeAmount);
+    } else if (_SUPPORT_TOKEN_PAY_FEE_GROUP.hydration.includes(chain)) {
+      tokensCanPayFee = await getHydrationTokensCanPayFee(substrateApi, chainService, nativeTokenInfo, nativeTokenBalanceInfo, tokensHasBalanceInfoMap, feeAmount);
     }
-
-    await Promise.all(tokenInfos.map(async (tokenInfo) => {
-      const tokenSlug = tokenInfo.slug;
-      const reserve = await getReserveForPool(substrateApi.api, nativeTokenInfo, tokenInfo);
-
-      if (!reserve || !reserve[0] || !reserve[1] || reserve[0] === '0' || reserve[1] === '0') {
-        return;
-      }
-
-      const rate = new BigN(reserve[1]).div(reserve[0]).toFixed();
-      const tokenCanPayFee = {
-        slug: tokenSlug,
-        free: tokensHasBalanceInfoMap[tokenSlug].free,
-        rate
-      };
-
-      if (feeAmount === undefined) {
-        tokensCanPayFee.push(tokenCanPayFee);
-      } else {
-        const amount = estimateTokensForPool(feeAmount, reserve);
-        const liquidityError = checkLiquidityForPool(amount, reserve[0], reserve[1]);
-
-        if (!liquidityError) {
-          tokensCanPayFee.push(tokenCanPayFee);
-        }
-      }
-    }));
 
     return tokensCanPayFee;
   }
