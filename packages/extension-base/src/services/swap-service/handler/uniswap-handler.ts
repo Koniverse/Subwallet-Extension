@@ -227,7 +227,7 @@ export class UniswapHandler implements SwapBaseInterface {
         data: approval.data,
         gasPrice: priority.gasPrice,
         maxFeePerGas: priority.options?.[FeeOptionKey.AVERAGE].maxFeePerGas?.toString(),
-        maxPriorityFeePerGas: priority.options?.[FeeOptionKey.AVERAGE].toString()
+        maxPriorityFeePerGas: priority.options?.[FeeOptionKey.AVERAGE].maxPriorityFeePerGas.toString()
       };
       const gasLimit = await evmApi.api.eth.estimateGas(transactionConfig).catch(() => 200000);
 
