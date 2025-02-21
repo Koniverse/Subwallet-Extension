@@ -133,7 +133,7 @@ export default class FeeService {
           } else {
             const api = this.state.getEvmApi(chain);
 
-            if (api) {
+            if (type === 'evm' && api) {
               calculateGasFeeParams(api, chain)
                 .then((info) => {
                   observer.next(info);
