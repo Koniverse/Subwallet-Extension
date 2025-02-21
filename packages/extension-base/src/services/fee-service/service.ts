@@ -133,6 +133,7 @@ export default class FeeService {
           } else {
             const api = this.state.getEvmApi(chain);
 
+            // TODO: Handle case type === evm and not have api
             if (type === 'evm' && api) {
               calculateGasFeeParams(api, chain)
                 .then((info) => {
