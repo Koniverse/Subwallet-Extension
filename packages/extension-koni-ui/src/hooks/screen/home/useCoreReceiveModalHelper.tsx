@@ -315,12 +315,13 @@ export default function useCoreReceiveModalHelper (tokenGroupSlug?: string): Hoo
     onOpenReceive,
     receiveModalProps: {
       tokenSelectorItems,
+      selectedChain,
       onCloseTokenSelector,
       onSelectTokenSelector,
       accountSelectorItems,
       onBackAccountSelector,
       onCloseAccountSelector,
-      onSelectAccountSelector
+      onSelectAccountSelector,
     }
   }), [accountSelectorItems, onBackAccountSelector, onCloseAccountSelector,
     onCloseTokenSelector, onOpenReceive, onSelectAccountSelector,

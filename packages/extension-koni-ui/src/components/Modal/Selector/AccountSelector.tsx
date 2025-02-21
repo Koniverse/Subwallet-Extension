@@ -5,6 +5,7 @@ import { AccountProxyType } from '@subwallet/extension-base/types';
 import { AddressSelectorItem, CloseIcon } from '@subwallet/extension-koni-ui/components';
 import GeneralEmptyList from '@subwallet/extension-koni-ui/components/EmptyList/GeneralEmptyList';
 import Search from '@subwallet/extension-koni-ui/components/Search';
+import { WalletModalContext } from '@subwallet/extension-koni-ui/contexts/WalletModalContextProvider';
 import { useTranslation } from '@subwallet/extension-koni-ui/hooks';
 import { AccountAddressItemType, ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { Icon, ModalContext, SwList, SwModal } from '@subwallet/react-ui';
@@ -12,10 +13,17 @@ import CN from 'classnames';
 import { CaretLeft } from 'phosphor-react';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import useGetChainInfo from "@subwallet/extension-koni-ui/hooks/screen/common/useFetchChainInfo";
 
 type ListItemGroupLabel = {
   id: string;
   groupLabel: string;
+}
+
+export type AccountChainAddressFormat = {
+  name: string;
+  slug: string;
+  address: string;
 }
 
 type ListItem = AccountAddressItemType | ListItemGroupLabel;
@@ -27,13 +35,16 @@ interface Props extends ThemeProps {
   onCancel?: VoidFunction;
   onBack?: VoidFunction;
   selectedValue?: string;
+  chainSlug: string;
 }
 
 const renderEmpty = () => <GeneralEmptyList />;
 
-function Component ({ className = '', items, modalId, onBack, onCancel, onSelectItem, selectedValue }: Props): React.ReactElement<Props> {
+function Component ({ chainSlug, className = '', items, modalId, onBack, onCancel, onSelectItem, selectedValue }: Props): React.ReactElement<Props> {
   const { t } = useTranslation();
   const { checkActive } = useContext(ModalContext);
+  const chainInfo = useGetChainInfo(chainSlug);
+  const { selectAddressFormatModal } = useContext(WalletModalContext);
 
   const [searchValue, setSearchValue] = useState<string>('');
 
@@ -45,6 +56,28 @@ function Component ({ className = '', items, modalId, onBack, onCancel, onSelect
     return item.accountName.toLowerCase().includes(lowerCaseSearchText) ||
       item.address.toLowerCase().includes(lowerCaseSearchText);
   }, []);
+
+  const onClickInfoButton = useCallback((item: AccountChainAddressFormat) => {
+    return () => {
+      const processFunction = () => {
+        selectAddressFormatModal.open({
+          name: item.name,
+          address: item.address,
+          chainSlug: item.slug,
+          onBack: selectAddressFormatModal.close,
+          onCancel: () => {
+            selectAddressFormatModal.close();
+
+            if (onCancel) {
+              onCancel();
+            }
+          }
+        });
+      };
+
+      processFunction();
+    };
+  }, [onCancel, selectAddressFormatModal]);
 
   const onSelect = useCallback((item: AccountAddressItemType) => {
     return () => {
@@ -64,15 +97,23 @@ function Component ({ className = '', items, modalId, onBack, onCancel, onSelect
       );
     }
 
+    const accInfo: AccountChainAddressFormat = {
+      address: (item as AccountAddressItemType).address,
+      name: chainInfo.name,
+      slug: chainInfo.slug
+    };
+
     return (
       <AddressSelectorItem
         address={(item as AccountAddressItemType).address}
         avatarValue={(item as AccountAddressItemType).accountProxyId}
+        chainSlug={chainSlug}
         className={'account-selector-item'}
         isSelected={selectedValue === (item as AccountAddressItemType).address}
         key={(item as AccountAddressItemType).address}
         name={(item as AccountAddressItemType).accountName}
         onClick={onSelect(item as AccountAddressItemType)}
+        onClickInfoButton={onClickInfoButton(accInfo)}
       />
     );
   }, [onSelect, selectedValue]);

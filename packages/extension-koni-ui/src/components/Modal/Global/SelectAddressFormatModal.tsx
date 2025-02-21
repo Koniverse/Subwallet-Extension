@@ -18,8 +18,8 @@ import styled from 'styled-components';
 
 export interface SelectAddressFormatModalProps {
   address: string;
-  chainSlug: string;
-  name: string;
+  chainSlug?: string;
+  name?: string;
   onBack?: VoidFunction;
   onCancel?: VoidFunction;
 }

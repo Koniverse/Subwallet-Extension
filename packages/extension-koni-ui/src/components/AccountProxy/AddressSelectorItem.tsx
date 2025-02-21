@@ -1,12 +1,15 @@
 // Copyright 2019-2022 @subwallet/extension-koni-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { reformatAddress } from '@subwallet/extension-base/utils';
+import { UNIFIED_CHAIN_SS58_PREFIX } from '@subwallet/extension-koni-ui/constants';
+import { useIsPolkadotUnifiedAddress } from '@subwallet/extension-koni-ui/hooks';
 import { ThemeProps } from '@subwallet/extension-koni-ui/types';
 import { toShort } from '@subwallet/extension-koni-ui/utils';
 import { Icon } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { CheckCircle } from 'phosphor-react';
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 
 import AccountProxyAvatar from './AccountProxyAvatar';
@@ -18,17 +21,31 @@ type Props = ThemeProps & {
   onClick?: VoidFunction;
   isSelected?: boolean;
   showUnselectIcon?: boolean;
+  chainSlug?: string;
+  onCancel?: VoidFunction;
+  onClickInfoButton?: VoidFunction
 }
 
 function Component (props: Props): React.ReactElement<Props> {
   const { address,
     avatarValue,
-    className, isSelected, name, onClick, showUnselectIcon } = props;
+    chainSlug, className, isSelected, name, onClick, onClickInfoButton, showUnselectIcon } = props;
+
+  const isPolkadotUnifiedAddress = useIsPolkadotUnifiedAddress({ slug: chainSlug, address });
+
+  const formatedAdddress = useMemo(() => {
+    return (isPolkadotUnifiedAddress ? reformatAddress(address, UNIFIED_CHAIN_SS58_PREFIX) : address);
+  }, []);
+
+  const _onClickInfoButton: React.MouseEventHandler<HTMLDivElement> = React.useCallback((event) => {
+    event.stopPropagation();
+    onClickInfoButton?.();
+  }, [onClickInfoButton]);
 
   return (
     <div
       className={CN(className)}
-      onClick={onClick}
+      onClick={isPolkadotUnifiedAddress ? _onClickInfoButton : onClick}
     >
       <div className='__item-left-part'>
         <AccountProxyAvatar
@@ -48,7 +65,7 @@ function Component (props: Props): React.ReactElement<Props> {
         }
 
         <div className='__address'>
-          {name ? `(${toShort(address, 4, 5)})` : toShort(address, 9, 10)}
+          {name ? `(${toShort(formatedAdddress, 4, 5)})` : toShort(formatedAdddress, 9, 10)}
         </div>
       </div>
 
