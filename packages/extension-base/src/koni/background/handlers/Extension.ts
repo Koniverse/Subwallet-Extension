@@ -1323,6 +1323,9 @@ export default class KoniExtension {
     const nativeTokenSlug: string = nativeTokenInfo.slug;
     const isTransferNativeToken = nativeTokenSlug === tokenSlug;
     const isTransferLocalTokenAndPayThatTokenAsFee = !isTransferNativeToken && nonNativeTokenPayFeeSlug === tokenSlug;
+    const isCustomTokenPayFeeAssetHub = Boolean(nonNativeTokenPayFeeSlug && _SUPPORT_TOKEN_PAY_FEE_GROUP.assetHub.includes(chain));
+    const isCustomTokenPayFeeHydration = Boolean(nonNativeTokenPayFeeSlug && _SUPPORT_TOKEN_PAY_FEE_GROUP.hydration.includes(chain));
+
     const extrinsicType = isTransferNativeToken ? ExtrinsicType.TRANSFER_BALANCE : ExtrinsicType.TRANSFER_TOKEN;
     let chainType = ChainType.SUBSTRATE;
 
@@ -1391,6 +1394,7 @@ export default class KoniExtension {
         });
       } else {
         const substrateApi = this.#koniState.getSubstrateApi(chain);
+        const hydrationFeeAssetId = isCustomTokenPayFeeHydration ? this.#koniState.chainService.getAssetBySlug(nonNativeTokenPayFeeSlug).metadata?.assetId : undefined;
 
         [transaction, transferAmount.value] = await createTransferExtrinsic({
           transferAll: !!transferAll,
@@ -1399,7 +1403,8 @@ export default class KoniExtension {
           networkKey: chain,
           tokenInfo: transferTokenInfo,
           to: to,
-          substrateApi
+          substrateApi,
+          hydrationFeeAssetId
         });
       }
     } catch (e) {
@@ -1423,7 +1428,7 @@ export default class KoniExtension {
       }
 
       // Check enough free local to pay fee local
-      if (nonNativeTokenPayFeeSlug) {
+      if (isCustomTokenPayFeeAssetHub) {
         const nonNativeFee = BigInt(inputTransaction.estimateFee?.value || '0'); // todo: estimateFee should be must-have, need to refactor interface
         const nonNativeTokenPayFeeInfo = await this.#koniState.balanceService.getTokensHasBalance(reformatAddress(from), chain, nonNativeTokenPayFeeSlug);
         const nonNativeTokenPayFeeBalance = BigInt(nonNativeTokenPayFeeInfo[nonNativeTokenPayFeeSlug].free);
