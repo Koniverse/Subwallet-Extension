@@ -400,11 +400,8 @@ export class InappNotificationService implements CronServiceInterface {
       const fromChain = this.chainService.getChainInfoByKey(fromAsset.originChain);
       const toChain = this.chainService.getChainInfoByKey(toAsset.originChain);
 
-      title = '[{{accountName}}] Swapped From {{fromAmount}} {{fromAsset}} to {{toAmount}} {{toAsset}}'
-        .replace('{{fromAmount}}', formatNumber(combineInfo.quote.fromAmount, fromAsset.decimals || 0))
-        .replace('{{fromAsset}}', fromAsset.symbol)
-        .replace('{{toAmount}}', formatNumber(combineInfo.quote.toAmount, toAsset.decimals || 0))
-        .replace('{{toAsset}}', toAsset.symbol);
+      title = '[{{accountName}}]  SWAPPED {{fromAsset}}'
+        .replace('{{fromAsset}}', fromAsset.symbol);
       description = '{{fromAmount}} {{fromAsset}} on {{fromChain}} swapped for {{toAmount}} {{toAsset}} on {{toChain}}. Click to view details'
         .replace('{{fromAmount}}', formatNumber(combineInfo.quote.fromAmount, fromAsset.decimals || 0))
         .replace('{{fromAsset}}', fromAsset.symbol)
