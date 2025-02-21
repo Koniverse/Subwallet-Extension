@@ -270,6 +270,23 @@ const AddressQrModal = styled(Component)<Props>(({ theme: { token } }: Props) =>
 
     '.__view-on-explorer': {
       fontSize: token.fontSizeLG
+    },
+
+    '.__address-tag': {
+      alignItems: 'center',
+      display: 'flex'
+    },
+
+    '.__item-tag': {
+      marginRight: 0,
+      'white-space': 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      minWidth: 39,
+      padding: `2px ${token.paddingXS}px`,
+      fontSize: token.fontSizeXS,
+      fontWeight: 700,
+      lineHeight: token.lineHeightXS
     }
   };
 });
