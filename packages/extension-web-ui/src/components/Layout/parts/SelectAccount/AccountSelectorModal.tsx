@@ -9,7 +9,7 @@ import { AccountChainAddressesModal, AccountProxySelectorAllItem, AccountProxySe
 import ExportAllSelector from '@subwallet/extension-web-ui/components/Layout/parts/SelectAccount/ExportAllSelector';
 import SelectAccountFooter from '@subwallet/extension-web-ui/components/Layout/parts/SelectAccount/Footer';
 import Search from '@subwallet/extension-web-ui/components/Search';
-import { ACCOUNT_CHAIN_ADDRESSES_MODAL, SELECT_ACCOUNT_MODAL } from '@subwallet/extension-web-ui/constants/modal';
+import { ACCOUNT_CHAIN_ADDRESSES_MODAL, DISCONNECT_EXTENSION_MODAL, SELECT_ACCOUNT_MODAL } from '@subwallet/extension-web-ui/constants/modal';
 import { useDefaultNavigate } from '@subwallet/extension-web-ui/hooks';
 import useTranslation from '@subwallet/extension-web-ui/hooks/common/useTranslation';
 import { saveCurrentAccountAddress } from '@subwallet/extension-web-ui/messaging';
@@ -19,7 +19,7 @@ import { AccountDetailParam, ThemeProps } from '@subwallet/extension-web-ui/type
 import { isAccountAll, shouldShowAllAccount } from '@subwallet/extension-web-ui/utils';
 import { Icon, ModalContext, SwList, Tooltip } from '@subwallet/react-ui';
 import CN from 'classnames';
-import { Circle, Export } from 'phosphor-react';
+import { Circle, Export, SignOut } from 'phosphor-react';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -177,7 +177,7 @@ const Component: React.FC<Props> = ({ className }: Props) => {
         groupLabel: t('Injected account')
       });
 
-      result.push(...ledgerAccounts);
+      result.push(...injectedAccounts);
     }
 
     if (unknownAccounts.length) {
@@ -265,6 +265,10 @@ const Component: React.FC<Props> = ({ className }: Props) => {
     };
   }, [inactiveModal, navigate]);
 
+  const openDisconnectExtensionModal = useCallback(() => {
+    activeModal(DISCONNECT_EXTENSION_MODAL);
+  }, [activeModal]);
+
   const renderItem = useCallback((item: ListItem): React.ReactNode => {
     if ((item as ListItemGroupLabel).groupLabel) {
       return (
@@ -294,19 +298,22 @@ const Component: React.FC<Props> = ({ className }: Props) => {
       }
     }
 
+    const isInjected = (item as AccountProxy).accountType === AccountProxyType.INJECTED;
+
     return (
       <AccountProxySelectorItem
         accountProxy={item as AccountProxy}
         className='account-selection'
         isSelected={item.id === currentAccountProxy?.id}
         key={item.id}
+        moreIcon={!isInjected ? undefined : SignOut}
         onClick={onSelect(item as AccountProxy)}
         onClickCopyButton={onViewChainAddresses(item as AccountProxy)}
         onClickDeriveButton={onViewAccountDetail(item as AccountProxy, true)}
-        onClickMoreButton={onViewAccountDetail(item as AccountProxy)}
+        onClickMoreButton={isInjected ? openDisconnectExtensionModal : onViewAccountDetail(item as AccountProxy)}
       />
     );
-  }, [currentAccountProxy?.id, onSelect, onViewAccountDetail, onViewChainAddresses, showAllAccount]);
+  }, [currentAccountProxy?.id, onSelect, onViewAccountDetail, onViewChainAddresses, openDisconnectExtensionModal, showAllAccount]);
 
   const handleSearch = useCallback((value: string) => {
     setSearchValue(value);

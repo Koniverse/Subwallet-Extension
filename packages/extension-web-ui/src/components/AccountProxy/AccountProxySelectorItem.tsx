@@ -23,6 +23,7 @@ type Props = ThemeProps & {
   onClickCopyButton?: VoidFunction;
   onClickDeriveButton?: VoidFunction;
   onClickMoreButton?: VoidFunction;
+  moreIcon?: PhosphorIcon;
 }
 
 type AccountProxyTypeIcon = {
@@ -34,11 +35,11 @@ type AccountProxyTypeIcon = {
 function Component (props: Props): React.ReactElement<Props> {
   const { accountProxy,
     isSelected,
+    moreIcon,
     onClick,
     onClickCopyButton,
     onClickDeriveButton,
-    onClickMoreButton,
-    showDerivedPath } = props;
+    onClickMoreButton, showDerivedPath } = props;
 
   const token = useContext<Theme>(ThemeContext as Context<Theme>).token;
   const logoMap = useContext<Theme>(ThemeContext as Context<Theme>).logoMap;
@@ -218,7 +219,7 @@ function Component (props: Props): React.ReactElement<Props> {
             <Button
               icon={
                 <Icon
-                  phosphorIcon={PencilSimpleLine}
+                  phosphorIcon={moreIcon || PencilSimpleLine}
                   size='sm'
                 />
               }
