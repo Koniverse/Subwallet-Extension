@@ -56,5 +56,32 @@ export async function getAssetHubTokensCanPayFee (substrateApi: _SubstrateApi, c
 }
 
 export async function getHydrationTokensCanPayFee (substrateApi: _SubstrateApi, chainService: ChainService, nativeTokenInfo: _ChainAsset, tokensHasBalanceInfoMap: Record<string, BalanceItem>, feeAmount?: string): Promise<TokenHasBalanceInfo[]> {
-  return [];
+  const tokensList: TokenHasBalanceInfo[] = [];
+  const _acceptedCurrencies = await substrateApi.api.query.multiTransactionPayment.acceptedCurrencies.entries();
+
+  const supportedAssetIds = _acceptedCurrencies.map((_assetId) => {
+    const assetId = _assetId[0].toHuman() as string[];
+
+    return assetId[0].replaceAll(',', '');
+  });
+
+  const tokenInfos = Object.keys(tokensHasBalanceInfoMap).map((tokenSlug) => chainService.getAssetBySlug(tokenSlug)).filter((token) => (
+    token.originChain === substrateApi.chainSlug &&
+    token.assetType !== _AssetType.NATIVE &&
+    !!token.metadata &&
+    !!token.metadata.assetId
+  ));
+
+  tokenInfos.forEach((tokenInfo) => {
+    // @ts-ignore
+    if (supportedAssetIds.includes(tokenInfo.metadata.assetId)) {
+      tokensList.push({
+        slug: tokenInfo.slug,
+        free: tokensHasBalanceInfoMap[tokenInfo.slug].free,
+        rate: '1' // todo: handle this
+      });
+    }
+  });
+
+  return tokensList;
 }

@@ -1,6 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-koni authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { COMMON_CHAIN_SLUGS } from '@subwallet/chain-list';
 import { AccountAuthType } from '@subwallet/extension-base/background/types';
 
 export const BASE_SECOND_INTERVAL = 1000;
@@ -47,7 +48,8 @@ export const ORDINAL_COLLECTION = '__Ordinal__';
 export const ORDINAL_METHODS = ['drc-20', 'pol-20'];
 
 export const PERMISSIONS_TO_REVOKE = ['eth_accounts'];
-export const ASSET_HUB_CHAIN_SLUGS = ['paseo_assethub', 'westend_assethub', 'rococo_assethub', 'statemine', 'statemint'];
+export const ASSET_HUB_CHAIN_SLUGS: string[] = ['paseo_assethub', 'westend_assethub', 'rococo_assethub', 'statemine', 'statemint'];
+export const HYDRATION_CHAIN_SLUGS: string[] = [COMMON_CHAIN_SLUGS.HYDRADX, COMMON_CHAIN_SLUGS.HYDRADX_TESTNET];
 
 export * from './blocked-actions';
 export * from './environment';
