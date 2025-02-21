@@ -48,6 +48,14 @@ export class SwapService implements ServiceWithProcessInterface, StoppableServic
   private async askProvidersForQuote (request: SwapRequest) {
     const availableQuotes: QuoteAskResponse[] = [];
 
+    await Promise.all(Object.values(this.handlers).map(async (handler) => {
+      // temporary solution to reduce number of requests to providers, will work as long as there's only 1 provider for 1 chain
+
+      if (handler.init && handler.isReady === false) {
+        await handler.init();
+      }
+    }));
+
     const quotes = await subwalletApiSdk.swapApi?.fetchSwapQuoteData(request);
 
     if (Array.isArray(quotes)) {
@@ -182,9 +190,9 @@ export class SwapService implements ServiceWithProcessInterface, StoppableServic
         case SwapProviderId.KUSAMA_ASSET_HUB:
           this.handlers[providerId] = new AssetHubSwapHandler(this.chainService, this.state.balanceService, this.state.feeService, 'statemine');
           break;
-        case SwapProviderId.ROCOCO_ASSET_HUB:
-          this.handlers[providerId] = new AssetHubSwapHandler(this.chainService, this.state.balanceService, this.state.feeService, 'rococo_assethub');
-          break;
+        // case SwapProviderId.ROCOCO_ASSET_HUB:
+        //   this.handlers[providerId] = new AssetHubSwapHandler(this.chainService, this.state.balanceService, this.state.feeService, 'rococo_assethub');
+        //   break;
         case SwapProviderId.SIMPLE_SWAP:
           this.handlers[providerId] = new SimpleSwapHandler(this.chainService, this.state.balanceService, this.state.feeService);
           break;

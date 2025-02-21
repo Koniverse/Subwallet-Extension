@@ -81,7 +81,21 @@ const Component: React.FC<Props> = (props: Props) => {
 
 const SwapQuotesSelectorModal = styled(Component)<Props>(({ theme: { token } }: Props) => {
   return {
-
+    '.ant-input-container': {
+      backgroundColor: token.colorBgInput
+    },
+    '.ant-form-item': {
+      marginBottom: 0
+    },
+    '.ant-btn-ghost': {
+      color: token.colorWhite
+    },
+    '.ant-btn-ghost:hover': {
+      color: token['gray-6']
+    },
+    '.ant-sw-modal-footer': {
+      borderTop: 0
+    }
   };
 });
 
