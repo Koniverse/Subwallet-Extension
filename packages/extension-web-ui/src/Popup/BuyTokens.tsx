@@ -23,12 +23,15 @@ import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 
-type WrapperProps = ThemeProps;
-
-type Props = {
+type SharedProps = {
   modalContent?: boolean;
   slug?: string;
   className?: string;
+};
+
+type WrapperProps = ThemeProps & SharedProps;
+
+type Props = SharedProps & {
   currentAccountProxy: AccountProxy;
 };
 
@@ -564,7 +567,7 @@ function Component ({ className, currentAccountProxy, modalContent, slug }: Prop
   );
 }
 
-const Wrapper: React.FC<Props> = (props: Props) => {
+const Wrapper: React.FC<WrapperProps> = (props: WrapperProps) => {
   const { className, modalContent } = props;
   const { goHome } = useDefaultNavigate();
   const currentAccountProxy = useSelector((state: RootState) => state.accountState.currentAccountProxy);
@@ -598,6 +601,7 @@ const Wrapper: React.FC<Props> = (props: Props) => {
     >
       <Component
         {...props}
+        currentAccountProxy={currentAccountProxy}
       />
     </Layout.Home>
   );
