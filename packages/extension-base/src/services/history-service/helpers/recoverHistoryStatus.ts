@@ -40,7 +40,7 @@ const substrateRecover = async (history: TransactionHistoryItem, chainService: C
       const api = _api.api;
 
       if (!blockHash) {
-        if (!nonce || !startBlock) {
+        if (nonce === undefined || startBlock === undefined) {
           console.log(`Fail to find extrinsic for ${address} on ${chain}: With nonce ${nonce || 'undefined'} from block ${startBlock || 'undefined'}`);
 
           return { status: HistoryRecoverStatus.LACK_INFO };
@@ -52,7 +52,7 @@ const substrateRecover = async (history: TransactionHistoryItem, chainService: C
           const blockHash = (await api.rpc.chain.getBlockHash(startBlock + i)).toHex();
           const block = await api.rpc.chain.getBlock(blockHash);
 
-          const extrinsics = block.block.extrinsics;
+          const extrinsics = block.block.extrinsics.toArray();
           let index: number | undefined;
 
           for (const [idx, extrinsic] of Object.entries(extrinsics)) {
@@ -151,7 +151,7 @@ const evmRecover = async (history: TransactionHistoryItem, chainService: ChainSe
 
         return { ...result, status: transactionReceipt.status ? HistoryRecoverStatus.SUCCESS : HistoryRecoverStatus.FAILED };
       } else {
-        if (!nonce || !startBlock) {
+        if (nonce === undefined || startBlock === undefined) {
           console.log(`Fail to find extrinsic for ${address} on ${chain}: With nonce ${nonce || 'undefined'} from block ${startBlock || 'undefined'}`);
 
           return { ...result, status: HistoryRecoverStatus.LACK_INFO };
