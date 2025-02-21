@@ -91,6 +91,8 @@ export const MainWrapper = styled(Component)<ThemeProps>(({ theme: { token } }: 
     marginLeft: 'auto',
     marginRight: 'auto',
     marginBottom: 34,
+    position: 'relative',
+    zIndex: 1,
 
     '@media (max-height: 797px)': {
       display: 'none'
