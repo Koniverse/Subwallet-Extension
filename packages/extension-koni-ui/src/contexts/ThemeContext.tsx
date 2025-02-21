@@ -51,7 +51,9 @@ const GlobalStyle = createGlobalStyle<ThemeProps>(({ theme }) => {
         maxWidth: '100%',
         overflow: 'hidden',
         marginLeft: 'auto',
-        marginRight: 'auto'
+        marginRight: 'auto',
+        position: 'relative',
+        zIndex: 1
       }
     },
 
